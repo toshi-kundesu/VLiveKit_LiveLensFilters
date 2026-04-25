@@ -1,0 +1,842 @@
+%YAML 1.1
+%TAG !u! tag:unity3d.com,2011:
+--- !u!114 &-8734969713050779368
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 0}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 3bcc18655c5b8ea4d840356f4fc488b5, type: 3}
+  m_Name: StepNode - -3756710
+  m_EditorClassIdentifier: 
+  guid: 2c44e100-61b9-435d-92fb-31f16a7efd90
+  groupGuid: 
+  position: {x: -463, y: 764}
+  renderEnabled: 1
+  title: StepNode
+  isPinned: 0
+  pinnedPosition: {x: 0, y: 0}
+  _nodeUIState:
+    m_isExpanded: 1
+  portedFieldsContainer: []
+  m_initialized: 1
+--- !u!114 &-8660654322700062259
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 0}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 61bd18b6eb2ab4c46ae92d6ae7e8accd, type: 3}
+  m_Name: InvertNode
+  m_EditorClassIdentifier: 
+  guid: 8a772d20-7703-4276-8dbc-d3c58ae5afb5
+  groupGuid: 
+  position: {x: 495, y: 902}
+  renderEnabled: 1
+  title: InvertNode
+  isPinned: 0
+  pinnedPosition: {x: 0, y: 0}
+  _nodeUIState:
+    m_isExpanded: 1
+  portedFieldsContainer: []
+  m_initialized: 1
+  m_exposeAsComponent: 0
+  m_proxy: {fileID: 0}
+  input: {fileID: 0}
+  output: {fileID: 0}
+  m_forceAlphaToOne: 0
+--- !u!114 &-8264388274108680468
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 0}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: dd54056a23d0e6e42ac3033150305e31, type: 3}
+  m_Name: '5388d5f9-d04d-4721-8fa5-05123edcf45a: InvertNode.output -> MultiplyNode(Clone).inputB'
+  m_EditorClassIdentifier: 
+  input: {fileID: 3}
+  output: {fileID: -8660654322700062259}
+  inputFieldName: inputB
+  outputFieldName: output
+  guid: 5388d5f9-d04d-4721-8fa5-05123edcf45a
+  useProperty: 0
+--- !u!114 &-8214562993413070058
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 0}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 81d5921db1d18c54bbd6c8a94376a933, type: 3}
+  m_Name: LayerNode
+  m_EditorClassIdentifier: 
+  guid: 99a1b782-754b-4954-9e93-4b09757df0bd
+  groupGuid: 
+  position: {x: 0, y: 0}
+  renderEnabled: 1
+  title: LayerNode
+  isPinned: 0
+  pinnedPosition: {x: 0, y: 0}
+  _nodeUIState:
+    m_isExpanded: 1
+  portedFieldsContainer: []
+  m_initialized: 1
+  m_exposeAsComponent: 0
+  m_config:
+    opacity: 0.314
+  m_proxy: {fileID: 0}
+  enabled: 1
+  blendMode: 1
+  useInputAlpha: 0
+  maskChannel: 3
+  premultipliedAlpha: 0
+  m_exportMode: 0
+  m_rtExporter:
+    m_exportRenderTexture:
+      overrideState: 0
+      value: {fileID: 0}
+--- !u!114 &-7452321060051539201
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 0}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 3bcc18655c5b8ea4d840356f4fc488b5, type: 3}
+  m_Name: StepNode - -3756710(Clone)
+  m_EditorClassIdentifier: 
+  guid: f8fb07d4-7d4b-49e1-baf4-c2e053ec503f
+  groupGuid: 
+  position: {x: -401, y: 1211}
+  renderEnabled: 1
+  title: StepNode
+  isPinned: 0
+  pinnedPosition: {x: 0, y: 0}
+  _nodeUIState:
+    m_isExpanded: 1
+  portedFieldsContainer: []
+  m_initialized: 1
+--- !u!114 &-6694508773349046497
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 0}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 60e9340507c69ad4888e249c70f04e5d, type: 3}
+  m_Name: LinearGradientNode
+  m_EditorClassIdentifier: 
+  guid: 03507957-1805-493e-a943-dc3ab54812ff
+  groupGuid: 
+  position: {x: -873, y: 818}
+  renderEnabled: 1
+  title: LinearGradientNode
+  isPinned: 0
+  pinnedPosition: {x: 0, y: 0}
+  _nodeUIState:
+    m_isExpanded: 1
+  portedFieldsContainer: []
+  m_initialized: 1
+  m_exposeAsComponent: 0
+  m_config:
+    centerOffset: {x: 0, y: 0}
+    scale: 1
+    rotation: 0
+    startColor: {r: 0, g: 0, b: 0, a: 1}
+    endColor: {r: 1, g: 1, b: 1, a: 1}
+    noise: 0
+  m_proxy: {fileID: 0}
+  invert: 0
+  output: {fileID: 0}
+  camera:
+    exposedName: 5818e6c963e475a4aafac2419323e13e
+    defaultValue: {fileID: 0}
+  useFocusRendererBoundingBox: 0
+  size:
+    m_outputSize: 0
+    m_customValue: {x: 1920, y: 1080}
+    x: 0
+    y: 0
+    m_version: 2
+--- !u!114 &-6436755808214129613
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 0}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 5fc4fb5e61315c24c9aa2c8cc27b2a48, type: 3}
+  m_Name: MultiplyNode
+  m_EditorClassIdentifier: 
+  guid: 1ebb51c5-c772-4d82-b087-00d267c9700b
+  groupGuid: 
+  position: {x: 21, y: 919}
+  renderEnabled: 1
+  title: MultiplyNode
+  isPinned: 0
+  pinnedPosition: {x: 0, y: 0}
+  _nodeUIState:
+    m_isExpanded: 1
+  portedFieldsContainer: []
+  m_initialized: 1
+  inputA: {fileID: 0}
+  inputB: {fileID: 0}
+  output: {fileID: 0}
+--- !u!114 &-4567122362134060717
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 0}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 0bcd81dec7eb4edd8e1346a216bf3dff, type: 3}
+  m_Name: FloatValueNode
+  m_EditorClassIdentifier: 
+  guid: 7dcd3ba3-64cd-46db-bc1c-75a65f0e5d3e
+  groupGuid: 
+  position: {x: -310, y: 408}
+  renderEnabled: 1
+  title: FloatValueNode
+  isPinned: 0
+  pinnedPosition: {x: 0, y: 0}
+  _nodeUIState:
+    m_isExpanded: 1
+  portedFieldsContainer: []
+  m_initialized: 1
+  m_exposeAsComponent: 0
+  m_config:
+    m_configValue: 0.12
+  m_proxy: {fileID: 0}
+  m_output: 0.12
+  m_value: 0
+  m_simpleValueNodeVersion: 1
+--- !u!114 &-3694876480476759539
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 0}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 37a153ecc1e0509478c2da5dc293ab68, type: 3}
+  m_Name: FinalOutputNode
+  m_EditorClassIdentifier: 
+  guid: 261216c2-c6a5-4258-85f6-4415a1dbb781
+  groupGuid: 
+  position: {x: 0, y: 0}
+  renderEnabled: 1
+  title: FinalOutputNode
+  isPinned: 0
+  pinnedPosition: {x: 0, y: 0}
+  _nodeUIState:
+    m_isExpanded: 1
+  portedFieldsContainer: []
+  m_initialized: 1
+  m_cameraRef:
+    exposedName: 0e1d1b45ffe414a4a9eb6aef1d088f68
+    defaultValue: {fileID: 0}
+  m_volumeProfile:
+    overrideState: 1
+    value: {fileID: 0}
+  m_volumeController:
+    m_globalVolumeRef:
+      exposedName: 28a370c515cf81946ae7c858bc1ed0f4
+      defaultValue: {fileID: 0}
+  m_enabled: 0
+--- !u!114 &-3497051825737106952
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 0}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: dd54056a23d0e6e42ac3033150305e31, type: 3}
+  m_Name: '99632752-00de-4a5c-920c-3d0e06c54f7f: FloatValueNode.m_output -> StepNode
+    - -3756710(Clone).threshold'
+  m_EditorClassIdentifier: 
+  input: {fileID: -7452321060051539201}
+  output: {fileID: -4567122362134060717}
+  inputFieldName: threshold
+  outputFieldName: m_output
+  guid: 99632752-00de-4a5c-920c-3d0e06c54f7f
+  useProperty: 0
+--- !u!114 &-3074620816846629101
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 0}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: dd54056a23d0e6e42ac3033150305e31, type: 3}
+  m_Name: '77db5f50-f578-477b-aaa6-3a6b393972b0: FloatValueNode.m_output -> StepNode
+    - -3756710.threshold'
+  m_EditorClassIdentifier: 
+  input: {fileID: -8734969713050779368}
+  output: {fileID: -4567122362134060717}
+  inputFieldName: threshold
+  outputFieldName: m_output
+  guid: 77db5f50-f578-477b-aaa6-3a6b393972b0
+  useProperty: 0
+--- !u!114 &-3005307451419426285
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 0}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: dd54056a23d0e6e42ac3033150305e31, type: 3}
+  m_Name: 'ba1be86d-e3de-4531-bb85-fbad1af5b597: BlurNode.m_output -> MultiplyNode(Clone).inputA'
+  m_EditorClassIdentifier: 
+  input: {fileID: 3}
+  output: {fileID: 239718285086443104}
+  inputFieldName: inputA
+  outputFieldName: m_output
+  guid: ba1be86d-e3de-4531-bb85-fbad1af5b597
+  useProperty: 0
+--- !u!114 &-2519119910248863692
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 0}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: dd54056a23d0e6e42ac3033150305e31, type: 3}
+  m_Name: 'd16ac560-8c86-4d2a-aa1c-a4646d21748c: MultiplyNode.output -> InvertNode.input'
+  m_EditorClassIdentifier: 
+  input: {fileID: -8660654322700062259}
+  output: {fileID: -6436755808214129613}
+  inputFieldName: input
+  outputFieldName: output
+  guid: d16ac560-8c86-4d2a-aa1c-a4646d21748c
+  useProperty: 0
+--- !u!114 &-1542517921516911633
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 0}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: dd54056a23d0e6e42ac3033150305e31, type: 3}
+  m_Name: '9fd4f448-6e96-421c-897d-bd05667a29ed: MultiplyNode.output -> LayerNode.mask'
+  m_EditorClassIdentifier: 
+  input: {fileID: -8214562993413070058}
+  output: {fileID: -6436755808214129613}
+  inputFieldName: mask
+  outputFieldName: output
+  guid: 9fd4f448-6e96-421c-897d-bd05667a29ed
+  useProperty: 0
+--- !u!114 &-1023845663735826685
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 0}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: dd54056a23d0e6e42ac3033150305e31, type: 3}
+  m_Name: '7d5b27c7-c0cd-4d0b-b6d3-59d49996490f: LinearGradientNode(Clone).output
+    -> StepNode - -3756710(Clone).m_input'
+  m_EditorClassIdentifier: 
+  input: {fileID: -7452321060051539201}
+  output: {fileID: 2}
+  inputFieldName: m_input
+  outputFieldName: output
+  guid: 7d5b27c7-c0cd-4d0b-b6d3-59d49996490f
+  useProperty: 0
+--- !u!114 &-950705928392316839
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 0}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 81d5921db1d18c54bbd6c8a94376a933, type: 3}
+  m_Name: LayerNode
+  m_EditorClassIdentifier: 
+  guid: 333bc802-0cca-4cae-83db-7f38e117eafd
+  groupGuid: 
+  position: {x: 0, y: 0}
+  renderEnabled: 1
+  title: LayerNode
+  isPinned: 0
+  pinnedPosition: {x: 0, y: 0}
+  _nodeUIState:
+    m_isExpanded: 1
+  portedFieldsContainer: []
+  m_initialized: 1
+  m_exposeAsComponent: 0
+  m_config:
+    opacity: 1
+  m_proxy: {fileID: 0}
+  enabled: 1
+  blendMode: 17
+  useInputAlpha: 0
+  maskChannel: 3
+  premultipliedAlpha: 0
+  m_exportMode: 0
+  m_rtExporter:
+    m_exportRenderTexture:
+      overrideState: 0
+      value: {fileID: 0}
+--- !u!114 &-715257966460723941
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 0}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: dd54056a23d0e6e42ac3033150305e31, type: 3}
+  m_Name: '14110dde-a376-4f49-b816-d78097487b83: MultiplyNode(Clone).output -> LayerNode.input'
+  m_EditorClassIdentifier: 
+  input: {fileID: -8214562993413070058}
+  output: {fileID: 3}
+  inputFieldName: input
+  outputFieldName: output
+  guid: 14110dde-a376-4f49-b816-d78097487b83
+  useProperty: 0
+--- !u!114 &2
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 0}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 60e9340507c69ad4888e249c70f04e5d, type: 3}
+  m_Name: LinearGradientNode(Clone)
+  m_EditorClassIdentifier: 
+  guid: 8b543421-2dbb-4a9d-8193-1e29aef9674f
+  groupGuid: 
+  position: {x: -847, y: 1380}
+  renderEnabled: 1
+  title: LinearGradientNode
+  isPinned: 0
+  pinnedPosition: {x: 0, y: 0}
+  _nodeUIState:
+    m_isExpanded: 1
+  portedFieldsContainer: []
+  m_initialized: 1
+  m_exposeAsComponent: 0
+  m_config:
+    centerOffset: {x: 0, y: 0}
+    scale: 1
+    rotation: 0
+    startColor: {r: 0, g: 0, b: 0, a: 1}
+    endColor: {r: 1, g: 1, b: 1, a: 1}
+    noise: 0
+  m_proxy: {fileID: 0}
+  invert: 1
+  output: {fileID: 0}
+  camera:
+    exposedName: 7567355a6217c3c429e6c95bf605d661
+    defaultValue: {fileID: 0}
+  useFocusRendererBoundingBox: 0
+  size:
+    m_outputSize: 0
+    m_customValue: {x: 1920, y: 1080}
+    x: 0
+    y: 0
+    m_version: 2
+--- !u!114 &3
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 0}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 5fc4fb5e61315c24c9aa2c8cc27b2a48, type: 3}
+  m_Name: MultiplyNode(Clone)
+  m_EditorClassIdentifier: 
+  guid: bf53cbb8-cd86-4ec9-bf77-c2ceb8452b03
+  groupGuid: 
+  position: {x: 318, y: 139}
+  renderEnabled: 1
+  title: MultiplyNode
+  isPinned: 0
+  pinnedPosition: {x: 0, y: 0}
+  _nodeUIState:
+    m_isExpanded: 1
+  portedFieldsContainer: []
+  m_initialized: 1
+  inputA: {fileID: 0}
+  inputB: {fileID: 0}
+  output: {fileID: 0}
+--- !u!114 &11400000
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 0}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 75a5ba7e25024bdc8c2b08d4ce788a16, type: 3}
+  m_Name: FlostedGlass
+  m_EditorClassIdentifier: 
+  nodes:
+  - {fileID: 4735528283908775300}
+  - {fileID: 6913803399732242664}
+  - {fileID: -6694508773349046497}
+  - {fileID: -4567122362134060717}
+  - {fileID: 2}
+  - {fileID: -6436755808214129613}
+  - {fileID: 239718285086443104}
+  - {fileID: 273510856280565834}
+  - {fileID: 3}
+  - {fileID: -8660654322700062259}
+  - {fileID: -8734969713050779368}
+  - {fileID: -7452321060051539201}
+  edges:
+  - {fileID: -1542517921516911633}
+  - {fileID: 3587303256795576032}
+  - {fileID: 2249546660504757951}
+  - {fileID: 8951072645304891909}
+  - {fileID: -2519119910248863692}
+  - {fileID: -8264388274108680468}
+  - {fileID: -3005307451419426285}
+  - {fileID: 4562442132771885382}
+  - {fileID: -715257966460723941}
+  - {fileID: 1942609035883208576}
+  - {fileID: -3074620816846629101}
+  - {fileID: 7382264656008773039}
+  - {fileID: -1023845663735826685}
+  - {fileID: -3497051825737106952}
+  - {fileID: 8749138140702502938}
+  layers:
+  - {fileID: -950705928392316839}
+  - {fileID: -8214562993413070058}
+  groups: []
+  layerStackPosition: {x: 951.2, y: -103.2}
+  finalOutputNode: {fileID: -3694876480476759539}
+  m_isInitialized: 1
+  rootGraph: {fileID: 11400000}
+  snapshotPaths: []
+  _compositorGraphVersion: 1
+  bookmarks: []
+--- !u!114 &239718285086443104
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 0}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 6252785df6b0990419d40c8655ace094, type: 3}
+  m_Name: BlurNode
+  m_EditorClassIdentifier: 
+  guid: 3bf6accc-c3c1-4658-8c5b-543b17b82b71
+  groupGuid: 
+  position: {x: -707, y: 139}
+  renderEnabled: 1
+  title: BlurNode
+  isPinned: 0
+  pinnedPosition: {x: 0, y: 0}
+  _nodeUIState:
+    m_isExpanded: 1
+  portedFieldsContainer: []
+  m_initialized: 1
+  m_exposeAsComponent: 0
+  m_config:
+    blurRadius: 0
+    radius: {x: 23.3, y: 23.3}
+    rotation: 0
+    numPasses: 10
+  m_proxy: {fileID: 0}
+  m_size:
+    m_outputSize: 0
+    m_customValue: {x: 1920, y: 1080}
+    x: 0
+    y: 0
+    m_version: 2
+  m_mode: 2
+  m_uniformRadius: 1
+  m_input: {fileID: 0}
+  m_output: {fileID: 0}
+  m_blurNodeVersion: 2
+--- !u!114 &273510856280565834
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 0}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 5fc4fb5e61315c24c9aa2c8cc27b2a48, type: 3}
+  m_Name: MultiplyNode
+  m_EditorClassIdentifier: 
+  guid: 7134d205-4e21-4699-8f4c-39c9ed9b7352
+  groupGuid: 
+  position: {x: 328, y: -380}
+  renderEnabled: 1
+  title: MultiplyNode
+  isPinned: 0
+  pinnedPosition: {x: 0, y: 0}
+  _nodeUIState:
+    m_isExpanded: 1
+  portedFieldsContainer: []
+  m_initialized: 1
+  inputA: {fileID: 0}
+  inputB: {fileID: 0}
+  output: {fileID: 0}
+--- !u!114 &1942609035883208576
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 0}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: dd54056a23d0e6e42ac3033150305e31, type: 3}
+  m_Name: 'bd134d8c-f30d-465a-924c-9f67b76c85fc: LinearGradientNode.output -> StepNode
+    - -3756710.m_input'
+  m_EditorClassIdentifier: 
+  input: {fileID: -8734969713050779368}
+  output: {fileID: -6694508773349046497}
+  inputFieldName: m_input
+  outputFieldName: output
+  guid: bd134d8c-f30d-465a-924c-9f67b76c85fc
+  useProperty: 0
+--- !u!114 &2249546660504757951
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 0}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: dd54056a23d0e6e42ac3033150305e31, type: 3}
+  m_Name: '5d2c7170-78cb-4bab-a435-616c15019856: MultiplyNode.output -> MultiplyNode.inputB'
+  m_EditorClassIdentifier: 
+  input: {fileID: 273510856280565834}
+  output: {fileID: -6436755808214129613}
+  inputFieldName: inputB
+  outputFieldName: output
+  guid: 5d2c7170-78cb-4bab-a435-616c15019856
+  useProperty: 0
+--- !u!114 &3587303256795576032
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 0}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: dd54056a23d0e6e42ac3033150305e31, type: 3}
+  m_Name: 'e88095e5-6942-4de9-b65b-97dc47dbfeaf: RenderingNode.output -> BlurNode.m_input'
+  m_EditorClassIdentifier: 
+  input: {fileID: 239718285086443104}
+  output: {fileID: 4735528283908775300}
+  inputFieldName: m_input
+  outputFieldName: output
+  guid: e88095e5-6942-4de9-b65b-97dc47dbfeaf
+  useProperty: 0
+--- !u!114 &4562442132771885382
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 0}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: dd54056a23d0e6e42ac3033150305e31, type: 3}
+  m_Name: '59a01d9f-5525-4c3d-80a4-e59b33b3705a: MultiplyNode.output -> LayerNode.input'
+  m_EditorClassIdentifier: 
+  input: {fileID: -950705928392316839}
+  output: {fileID: 273510856280565834}
+  inputFieldName: input
+  outputFieldName: output
+  guid: 59a01d9f-5525-4c3d-80a4-e59b33b3705a
+  useProperty: 0
+--- !u!114 &4735528283908775300
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 0}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: c60a04a9172dea34da5cc24c941eb990, type: 3}
+  m_Name: RenderingNode
+  m_EditorClassIdentifier: 
+  guid: 70936309-3cbf-45b2-82c9-9fd704e9ea47
+  groupGuid: 
+  position: {x: -323, y: -611}
+  renderEnabled: 1
+  title: RenderingNode
+  isPinned: 0
+  pinnedPosition: {x: 0, y: 0}
+  _nodeUIState:
+    m_isExpanded: 1
+  portedFieldsContainer: []
+  m_initialized: 1
+  size:
+    m_outputSize: 0
+    m_customValue: {x: 1920, y: 1080}
+    x: 0
+    y: 0
+    m_version: 2
+  camera:
+    exposedName: 16307d34a1767424a82936f72369e6b0
+    defaultValue: {fileID: 0}
+  _renderMaterial:
+    overrideState: 0
+    value: {fileID: 0}
+  _lightShadows:
+    overrideState: 0
+    value: 0
+  includeChildRenderers: 1
+  output: {fileID: 0}
+  _cullingMask:
+    overrideState: 0
+    value:
+      serializedVersion: 2
+      m_Bits: 4294967295
+  clearFlags:
+    overrideState: 0
+    value: 2
+  backgroundColor:
+    overrideState: 0
+    value: {r: 0, g: 0, b: 0, a: 1}
+  forceBackgroundAlphaToZero: 0
+  globalVolume:
+    overrideState: 0
+    value: {fileID: 0}
+  antialiasing: 0
+  SMAAQuality: 0
+  taaSharpenStrength: 0
+  m_volumeController:
+    m_globalVolumeRef:
+      exposedName: 
+      defaultValue: {fileID: 0}
+--- !u!114 &6913803399732242664
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 0}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: a0b2599b036778444a32281fcf7c70bc, type: 3}
+  m_Name: SolidColorNode
+  m_EditorClassIdentifier: 
+  guid: df7976c0-98a9-43b2-9706-aabf0ab3f979
+  groupGuid: 
+  position: {x: -78, y: 1692}
+  renderEnabled: 1
+  title: SolidColorNode
+  isPinned: 0
+  pinnedPosition: {x: 0, y: 0}
+  _nodeUIState:
+    m_isExpanded: 1
+  portedFieldsContainer: []
+  m_initialized: 1
+  m_size:
+    m_outputSize: 0
+    m_customValue: {x: 1920, y: 1080}
+    x: 0
+    y: 0
+    m_version: 2
+  m_color: {r: 0.98490566, g: 0, b: 0, a: 1}
+  m_output: {fileID: 0}
+--- !u!114 &7382264656008773039
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 0}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: dd54056a23d0e6e42ac3033150305e31, type: 3}
+  m_Name: 'd972a6ed-7183-4b4e-9719-d0f285298fba: StepNode - -3756710.m_output ->
+    MultiplyNode.inputA'
+  m_EditorClassIdentifier: 
+  input: {fileID: -6436755808214129613}
+  output: {fileID: -8734969713050779368}
+  inputFieldName: inputA
+  outputFieldName: m_output
+  guid: d972a6ed-7183-4b4e-9719-d0f285298fba
+  useProperty: 0
+--- !u!114 &8749138140702502938
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 0}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: dd54056a23d0e6e42ac3033150305e31, type: 3}
+  m_Name: 'f4a6cc89-29b7-48a2-9355-ff2d11fb9efc: StepNode - -3756710(Clone).m_output
+    -> MultiplyNode.inputB'
+  m_EditorClassIdentifier: 
+  input: {fileID: -6436755808214129613}
+  output: {fileID: -7452321060051539201}
+  inputFieldName: inputB
+  outputFieldName: m_output
+  guid: f4a6cc89-29b7-48a2-9355-ff2d11fb9efc
+  useProperty: 0
+--- !u!114 &8951072645304891909
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 0}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: dd54056a23d0e6e42ac3033150305e31, type: 3}
+  m_Name: '74e01ffc-a8d0-4fdc-97b0-2391d8e8ca5a: RenderingNode.output -> MultiplyNode.inputA'
+  m_EditorClassIdentifier: 
+  input: {fileID: 273510856280565834}
+  output: {fileID: 4735528283908775300}
+  inputFieldName: inputA
+  outputFieldName: output
+  guid: 74e01ffc-a8d0-4fdc-97b0-2391d8e8ca5a
+  useProperty: 0
