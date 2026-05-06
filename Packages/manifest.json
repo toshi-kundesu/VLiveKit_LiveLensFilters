@@ -1,4 +1,13 @@
 {
+  "scopedRegistries": [
+    {
+      "name": "toshi",
+      "url": "https://registry.npmjs.org",
+      "scopes": [
+        "com.toshi"
+      ]
+    }
+  ],
   "dependencies": {
     "com.unity.visual-compositor": "0.30.7-preview",
     "com.unity.feature.development": "1.0.1",
