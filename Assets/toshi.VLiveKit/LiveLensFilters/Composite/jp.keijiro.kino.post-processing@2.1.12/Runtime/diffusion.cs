@@ -10,17 +10,30 @@ namespace Kino.PostProcessing
     [Serializable, VolumeComponentMenu("Post-processing/Kino/diffusion")]
     public sealed class diffusion : CustomPostProcessVolumeComponent, IPostProcessComponent
     {
+        #region Local enums and wrapper classes
+
+        public enum SourceMode { FullFrame, HighlightsOnly }
+        public enum BlendMode { Lighten, Screen }
+
+        [Serializable] public sealed class SourceModeParameter : VolumeParameter<SourceMode> {}
+        [Serializable] public sealed class BlendModeParameter : VolumeParameter<BlendMode> {}
+
+        #endregion
+
         #region Effect parameters
 
         // public ClampedFloatParameter threshold = new ClampedFloatParameter(1, 0, 5);
         public ClampedFloatParameter stretch = new ClampedFloatParameter(0.75f, 0, 1);
         // public ClampedFloatParameter intensity = new ClampedFloatParameter(0, 0, 1);
         public ColorParameter tint = new ColorParameter(new Color(0.55f, 0.55f, 1), false, false, true);
+        public SourceModeParameter sourceMode = new SourceModeParameter { value = SourceMode.HighlightsOnly };
+        public BlendModeParameter blendMode = new BlendModeParameter { value = BlendMode.Lighten };
+        public BoolParameter useTint = new BoolParameter(false);
 
         /* -------- パラメータ -------- */
         public ClampedFloatParameter threshold  = new(1f, 0f, 10f);
         public ClampedFloatParameter blurRadius = new(2f, 0.1f, 10f);
-        public ClampedFloatParameter intensity  = new(1f, 0f, 5f);
+        public ClampedFloatParameter intensity  = new(0f, 0f, 5f);
         public Vector4Parameter weights = new Vector4Parameter(new Vector4(0.1f, 0.2f, 0.3f, 0.4f));
         public ClampedFloatParameter exposure = new ClampedFloatParameter(1f, 0f, 10f);
         public ClampedFloatParameter contrast = new ClampedFloatParameter(1f, 0f, 10f);
@@ -59,6 +72,9 @@ namespace Kino.PostProcessing
         internal static readonly int _BloomIntensity = Shader.PropertyToID("_BloomIntensity");
         internal static readonly int _BloomColor = Shader.PropertyToID("_BloomColor");
         internal static readonly int _BlurTexture = Shader.PropertyToID("_BlurTexture");
+        internal static readonly int _SourceMode = Shader.PropertyToID("_SourceMode");
+        internal static readonly int _BlendMode = Shader.PropertyToID("_BlendMode");
+        internal static readonly int _UseTint = Shader.PropertyToID("_UseTint");
         // internal static readonly int _InputTex   = Shader.PropertyToID("_InputTexture");
         // internal static readonly int _SourceTex  = Shader.PropertyToID("_SourceTexture");
         }
@@ -128,6 +144,9 @@ namespace Kino.PostProcessing
             _material.SetFloat("_Saturation", saturation.value);
             _material.SetFloat("_BloomIntensity", bloomIntensity.value);
             _material.SetColor("_BloomColor", bloomColor.value);
+            _material.SetInt(ShaderIDs._SourceMode, (int)sourceMode.value);
+            _material.SetInt(ShaderIDs._BlendMode, (int)blendMode.value);
+            _material.SetInt(ShaderIDs._UseTint, useTint.value ? 1 : 0);
             // _material.SetTexture("_BlurTex", pyramid[0].A);
             // Source -> Prefilter -> MIP 0
             // まず、コントラストのパスに通す

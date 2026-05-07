@@ -18,7 +18,7 @@ namespace Kino.PostProcessing
         public ColorParameter tint = new ColorParameter(new Color(0.55f, 0.55f, 1), false, false, true);
 
         /* -------- パラメータ -------- */
-        public ClampedFloatParameter threshold  = new(1f, 0f, 10f);
+        public ClampedFloatParameter threshold  = new(0.8f, 0f, 10f);
         public ClampedFloatParameter blurRadius = new(2f, 0.1f, 10f);
         public ClampedFloatParameter intensity  = new(1f, 0f, 5f);
         public Vector4Parameter weights = new Vector4Parameter(new Vector4(0.1f, 0.2f, 0.3f, 0.4f));
@@ -92,7 +92,7 @@ namespace Kino.PostProcessing
 
         #region IPostProcessComponent implementation
 
-        public bool IsActive() => _material != null && intensity.value > 0;
+        public bool IsActive() => _material != null && bloomIntensity.value > 0;
 
         #endregion
 

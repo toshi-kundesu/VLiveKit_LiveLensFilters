@@ -52,6 +52,9 @@ Shader "Hidden/Kino/PostProcess/diffusion"
     float _Saturation;
     float _BloomIntensity;
     float3 _BloomColor;
+    int _SourceMode;
+    int _BlendMode;
+    int _UseTint;
     // float _Intensity;
     float3 _Tint;
 
@@ -91,7 +94,11 @@ float3 Contrast(float3 In, float Contrast)
         half4 color = LOAD_TEXTURE2D_X(_SourceTexture, input.texcoord * _ScreenSize.xy);
 
         color.rgb = Contrast(color.rgb, _Contrast);
-        // color.rgb = float3(_Contrast, 0, 0);
+        if (_SourceMode == 1)
+        {
+            float br = max(color.r, max(color.g, color.b));
+            color.rgb *= max(0, br - _Threshold) / max(br, 1e-5);
+        }
         
         return color;
     }
@@ -136,7 +143,13 @@ float3 Contrast(float3 In, float Contrast)
         half4 color = LOAD_TEXTURE2D_X(_SourceTexture, input.texcoord * _ScreenSize.xy);
         half4 blur = SAMPLE_TEXTURE2D_X(_BlurTexture, s_linear_clamp_sampler, input.texcoord);
 
-          color.rgb = 1.0 - (1.0 - color.rgb) * (1.0 - blur.rgb * _Intensity);
+        if (_UseTint != 0)
+            blur.rgb *= _Color;
+
+        if (_BlendMode == 1)
+            color.rgb = 1.0 - (1.0 - color.rgb) * (1.0 - blur.rgb * _Intensity);
+        else
+            color.rgb = max(color.rgb, blur.rgb * _Intensity);
         // color.rgb = lerp(color.rgb, blur.rgb, _Intensity);
         
         return color;
