@@ -5,8 +5,8 @@ HDRP / Visual Compositor 向けの、ライブ映像用ポストプロセスと�
 ## Package
 
 - Package name: `com.toshi.vlivekit.lensfilters`
-- Version: `0.1.2`
-- Unity: 2022.3
+- Version: `0.1.6`
+- Unity: 6000.3
 - Repository: https://github.com/toshi-kundesu/VLiveKit_LiveLensFilters
 - Package root: `Assets/toshi.VLiveKit/LiveLensFilters`
 
@@ -29,7 +29,7 @@ Add this package to `Packages/manifest.json`.
 ```json
 {
   "dependencies": {
-    "com.toshi.vlivekit.lensfilters": "0.1.2"
+    "com.toshi.vlivekit.lensfilters": "0.1.6"
   }
 }
 ```

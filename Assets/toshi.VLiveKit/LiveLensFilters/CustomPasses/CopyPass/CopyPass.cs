@@ -2,17 +2,6 @@ using UnityEngine;
 using UnityEngine.Rendering;
 using UnityEngine.Rendering.HighDefinition;
 
-#if UNITY_EDITOR
-using UnityEditor;
-using UnityEditor.Rendering.HighDefinition;
-
-[CustomPassDrawer(typeof(CopyPass))]
-public class CopyPassDrawer : CustomPassDrawer
-{
-    protected override PassUIFlag commonPassUIFlags => PassUIFlag.Name;
-}
-#endif
-
 public class CopyPass : CustomPass
 {
     public enum BufferType
