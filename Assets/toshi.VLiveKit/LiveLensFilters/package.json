@@ -1,6 +1,6 @@
 ﻿{
     "name":  "com.toshi.vlivekit.lensfilters",
-    "version":  "0.1.0",
+    "version":  "0.1.4",
     "displayName":  "VLive Lens Filters",
     "description":  "Lens filters for virtual live production.",
     "unity":  "2022.3",
@@ -13,6 +13,7 @@
                    },
     "license":  "Unlicense",
     "dependencies":  {
+                         "com.unity.render-pipelines.high-definition":  "14.0.8",
                          "com.unity.visual-compositor":  "0.30.7-preview"
                      }
 }
