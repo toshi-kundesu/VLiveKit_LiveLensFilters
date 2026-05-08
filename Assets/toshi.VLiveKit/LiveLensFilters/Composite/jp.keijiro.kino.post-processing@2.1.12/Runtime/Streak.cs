@@ -15,7 +15,15 @@ namespace Kino.PostProcessing
         public ClampedFloatParameter threshold = new ClampedFloatParameter(1, 0, 5);
         public ClampedFloatParameter stretch = new ClampedFloatParameter(0.75f, 0, 1);
         public ClampedFloatParameter intensity = new ClampedFloatParameter(0, 0, 1);
+        public ClampedFloatParameter intensity_d = new ClampedFloatParameter(0, 0, 1);
+        public ClampedFloatParameter intensity_c = new ClampedFloatParameter(0, 0, 1);
+        public ClampedFloatParameter intensity_n = new ClampedFloatParameter(0, 0, 1);
+        public ClampedFloatParameter intensity_r = new ClampedFloatParameter(0, 0, 1);
+        public ClampedFloatParameter intensity_m = new ClampedFloatParameter(0, 0, 1);
         public ColorParameter tint = new ColorParameter(new Color(0.55f, 0.55f, 1), false, false, true);
+
+        // ★追加（最小）：Depth表示の切替
+        public BoolParameter showCopiedDepth = new BoolParameter(false);
 
         #endregion
 
@@ -30,7 +38,13 @@ namespace Kino.PostProcessing
             internal static readonly int SourceTexture = Shader.PropertyToID("_SourceTexture");
             internal static readonly int Stretch = Shader.PropertyToID("_Stretch");
             internal static readonly int Threshold = Shader.PropertyToID("_Threshold");
+            internal static readonly int Intensity_d = Shader.PropertyToID("_Intensity_d");
+            internal static readonly int Intensity_c = Shader.PropertyToID("_Intensity_c");
+            internal static readonly int Intensity_n = Shader.PropertyToID("_Intensity_n");
+            internal static readonly int Intensity_r = Shader.PropertyToID("_Intensity_r");
+            internal static readonly int Intensity_m = Shader.PropertyToID("_Intensity_m");
         }
+
 
         Material _material;
         MaterialPropertyBlock _prop;
@@ -63,7 +77,7 @@ namespace Kino.PostProcessing
 
         #region IPostProcessComponent implementation
 
-        public bool IsActive() => _material != null && intensity.value > 0;
+        public bool IsActive() => _material != null && (intensity.value > 0 || showCopiedDepth.value);
 
         #endregion
 
@@ -81,6 +95,15 @@ namespace Kino.PostProcessing
 
         public override void Render(CommandBuffer cmd, HDCamera camera, RTHandle srcRT, RTHandle destRT)
         {
+            // ★追加（最小）：Depth表示モードなら pass 4 をそのまま描画して終わり
+            if (showCopiedDepth.value)
+            {
+                // シェーダ側で TEXTURE2D(_CopiedDepthTex) を直接参照しているので
+                // ここで SetTexture する必要はない（グローバル前提）
+                HDUtils.DrawFullScreen(cmd, _material, destRT, _prop, 4);
+                return;
+            }
+
             var pyramid = GetPyramid(camera);
 
             // Common parameters
@@ -89,7 +112,11 @@ namespace Kino.PostProcessing
             _material.SetFloat("_Intensity", intensity.value);
             _material.SetColor("_Color", tint.value);
             _material.SetTexture("_SourceTexture", srcRT);
-
+            _material.SetFloat("_Intensity_d", intensity_d.value);
+            _material.SetFloat("_Intensity_c", intensity_c.value);
+            _material.SetFloat("_Intensity_n", intensity_n.value);
+            _material.SetFloat("_Intensity_r", intensity_r.value);
+            _material.SetFloat("_Intensity_m", intensity_m.value);
             // Source -> Prefilter -> MIP 0
             HDUtils.DrawFullScreen(cmd, _material, pyramid[0].down, _prop, 0);
 
@@ -133,9 +160,9 @@ namespace Kino.PostProcessing
         public const int MaxMipLevel = 16;
 
         int _baseWidth, _baseHeight;
-        readonly (RTHandle down, RTHandle up) [] _mips = new (RTHandle, RTHandle) [MaxMipLevel];
+        readonly (RTHandle down, RTHandle up)[] _mips = new (RTHandle, RTHandle)[MaxMipLevel];
 
-        public (RTHandle down, RTHandle up) this [int index]
+        public (RTHandle down, RTHandle up) this[int index]
         {
             get { return _mips[index]; }
         }
@@ -161,7 +188,7 @@ namespace Kino.PostProcessing
             foreach (var mip in _mips)
             {
                 if (mip.down != null) RTHandles.Release(mip.down);
-                if (mip.up   != null) RTHandles.Release(mip.up);
+                if (mip.up != null) RTHandles.Release(mip.up);
             }
         }
 
@@ -180,7 +207,7 @@ namespace Kino.PostProcessing
             for (var i = 1; i < MaxMipLevel; i++)
             {
                 width /= 2;
-                _mips[i] = width < 4 ?  (null, null) :
+                _mips[i] = width < 4 ? (null, null) :
                     (RTHandles.Alloc(width, height, colorFormat: RTFormat),
                      RTHandles.Alloc(width, height, colorFormat: RTFormat));
             }

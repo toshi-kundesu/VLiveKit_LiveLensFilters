@@ -33,25 +33,45 @@ Shader "Hidden/Kino/PostProcess/Streak"
     TEXTURE2D(_InputTexture);
     TEXTURE2D(_HighTexture);
 
+    // ★追加：CopyPass が SetGlobalTexture で配ったDepth（RenderTexture）
+    // CopyPass 側の globalDepthTextureName と一致させること（例："_CopiedDepthTex"）
+    TEXTURE2D(_CopiedColorTex);
+    TEXTURE2D(_CopiedNormalTex);
+    TEXTURE2D(_CopiedRoughnessTex);
+    TEXTURE2D(_CopiedDepthTex);
+    TEXTURE2D(_CopiedMotionVectorsTex);
+    TEXTURE2D(_SeeThroughFinalTex);
+
+
     float4 _InputTexture_TexelSize;
 
     float _Threshold;
     float _Stretch;
     float _Intensity;
     float3 _Color;
+    float _Intensity_d;
+    float _Intensity_c;
+    float _Intensity_n;
+    float _Intensity_r;
+    float _Intensity_m;
 
     // Prefilter: Shrink horizontally and apply threshold.
     float4 FragmentPrefilter(Varyings input) : SV_Target
     {
         UNITY_SETUP_STEREO_EYE_INDEX_POST_VERTEX(input);
+    // 輝度抽出元をマスクして、その後輝度抽出を行う
 
+        float3 s = SAMPLE_TEXTURE2D(_SeeThroughFinalTex, s_linear_clamp_sampler, input.texcoord).rgb;
+        float3 mask = float3(s.r, s.r, s.r);
         uint2 ss = input.texcoord * _ScreenSize.xy - float2(0, 0.5);
-        float3 c0 = LOAD_TEXTURE2D_X(_SourceTexture, ss).rgb;
-        float3 c1 = LOAD_TEXTURE2D_X(_SourceTexture, ss + uint2(0, 1)).rgb;
+        float3 c0 = LOAD_TEXTURE2D_X(_SourceTexture, ss).rgb * mask;
+        float3 c1 = LOAD_TEXTURE2D_X(_SourceTexture, ss + uint2(0, 1)).rgb * mask;
         float3 c = (c0 + c1) / 2;
 
         float br = max(c.r, max(c.g, c.b));
         c *= max(0, br - _Threshold) / max(br, 1e-5);
+
+        // c = s;
 
         return float4(c, 1);
     }
@@ -123,11 +143,38 @@ Shader "Hidden/Kino/PostProcess/Streak"
         return float4(cf + c3, 1);
     }
 
+    // ★追加：グローバルで受け取った Depth テクスチャをそのまま描画（デバッグ表示）
+    float4 FragmentShowDepth(Varyings input) : SV_Target
+    {
+        UNITY_SETUP_STEREO_EYE_INDEX_POST_VERTEX(input);
+
+        float3 d = SAMPLE_TEXTURE2D(_CopiedDepthTex, s_linear_clamp_sampler, input.texcoord).rgb;
+        float3 c = SAMPLE_TEXTURE2D(_CopiedColorTex, s_linear_clamp_sampler, input.texcoord).rgb;
+        float3 n = SAMPLE_TEXTURE2D(_CopiedNormalTex, s_linear_clamp_sampler, input.texcoord).rgb;
+        float3 r = SAMPLE_TEXTURE2D(_CopiedRoughnessTex, s_linear_clamp_sampler, input.texcoord).rgb;
+        float3 m = SAMPLE_TEXTURE2D(_CopiedMotionVectorsTex, s_linear_clamp_sampler, input.texcoord).rgb;
+        float3 s = SAMPLE_TEXTURE2D(_SeeThroughFinalTex, s_linear_clamp_sampler, input.texcoord).rgb;
+        // 値域が 0-1 じゃない場合、真っ白/真っ黒になりがちだけど
+        // “最小限”のため、とりあえず saturate のみにしてる
+        // d = saturate(d);
+        // c = saturate(c);
+        // n = saturate(n);
+        // r = saturate(r);
+        // m = saturate(m);
+        // s = saturate(s);
+        float3 result = _Intensity_d * d + _Intensity_c * c + _Intensity_n * n + _Intensity_r * r + _Intensity_m * m;
+        result = float3(s.r, s.g, 1);
+
+
+        return float4(d, 1);
+    }
+
     ENDHLSL
 
     SubShader
     {
         Cull Off ZWrite Off ZTest Always
+
         Pass
         {
             HLSLPROGRAM
@@ -156,6 +203,16 @@ Shader "Hidden/Kino/PostProcess/Streak"
             #pragma fragment FragmentComposition
             ENDHLSL
         }
+
+        // ★追加：pass 4 = Depth表示
+        Pass
+        {
+            HLSLPROGRAM
+            #pragma vertex Vertex
+            #pragma fragment FragmentShowDepth
+            ENDHLSL
+        }
     }
+
     Fallback Off
 }
