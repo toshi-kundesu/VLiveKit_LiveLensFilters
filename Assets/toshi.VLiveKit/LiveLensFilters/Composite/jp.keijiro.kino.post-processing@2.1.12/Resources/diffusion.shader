@@ -104,7 +104,7 @@ float3 Contrast(float3 In, float Contrast)
     }
     half4 Frag_Blur1(Varyings input) : SV_Target
     {
-        half4 color = 0;
+        half4 color = half4(0, 0, 0, 0);
 
         float totalWeight = 0;
         
@@ -112,7 +112,7 @@ float3 Contrast(float3 In, float Contrast)
         {
             float weight = Weights[i + 4];
             totalWeight += weight;
-            color += SAMPLE_TEXTURE2D_X(_InputTexture, s_linear_clamp_sampler, input.texcoord + float4(i * _InputTexture_TexelSize.x * _BlurRadius, 0, 0, 0)) * weight;
+            color += SAMPLE_TEXTURE2D(_InputTexture, s_linear_clamp_sampler, input.texcoord + float2(i * _InputTexture_TexelSize.x * _BlurRadius, 0)) * weight;
         }
 
         color /= totalWeight;
@@ -122,7 +122,7 @@ float3 Contrast(float3 In, float Contrast)
 
     half4 Frag_Blur2(Varyings input) : SV_Target
     {
-        half4 color = 0;
+        half4 color = half4(0, 0, 0, 0);
 
         float totalWeight = 0;
         
@@ -130,7 +130,7 @@ float3 Contrast(float3 In, float Contrast)
         {
             float weight = Weights[i + 4];
             totalWeight += weight;
-            color += SAMPLE_TEXTURE2D_X(_InputTexture, s_linear_clamp_sampler, input.texcoord + float4(0, i * _InputTexture_TexelSize.y * _BlurRadius, 0, 0)) * weight;
+            color += SAMPLE_TEXTURE2D(_InputTexture, s_linear_clamp_sampler, input.texcoord + float2(0, i * _InputTexture_TexelSize.y * _BlurRadius)) * weight;
         }
 
         color /= totalWeight;
@@ -141,13 +141,16 @@ float3 Contrast(float3 In, float Contrast)
     half4 Frag_Blend(Varyings input) : SV_Target
     {
         half4 color = LOAD_TEXTURE2D_X(_SourceTexture, input.texcoord * _ScreenSize.xy);
-        half4 blur = SAMPLE_TEXTURE2D_X(_BlurTexture, s_linear_clamp_sampler, input.texcoord);
+        half4 blur = SAMPLE_TEXTURE2D(_BlurTexture, s_linear_clamp_sampler, input.texcoord);
 
         if (_UseTint != 0)
             blur.rgb *= _Color;
 
         if (_BlendMode == 1)
-            color.rgb = 1.0 - (1.0 - color.rgb) * (1.0 - blur.rgb * _Intensity);
+        {
+            half3 screen = 1.0 - (1.0 - saturate(color.rgb)) * (1.0 - saturate(blur.rgb * _Intensity));
+            color.rgb = max(color.rgb, screen);
+        }
         else
             color.rgb = max(color.rgb, blur.rgb * _Intensity);
         // color.rgb = lerp(color.rgb, blur.rgb, _Intensity);
@@ -156,14 +159,14 @@ float3 Contrast(float3 In, float Contrast)
     }
     half4 GaussianBlur(float2 uv, float2 direction)
         {
-            float2 offset = _BlurRadius * _InputTexture_TexelSize * direction; 
-            half4 color = 0.0;
+            float2 offset = _BlurRadius * _InputTexture_TexelSize.xy * direction;
+            half4 color = half4(0, 0, 0, 0);
 
             UNITY_UNROLL
             for (int i = 0; i < kernelSize; i++)
             {
                 float2 sampleUV = uv + kernelOffsets[i] * offset;
-                color += kernel[i] * SAMPLE_TEXTURE2D_X(_InputTexture, s_linear_clamp_sampler, sampleUV);
+                color += kernel[i] * SAMPLE_TEXTURE2D(_InputTexture, s_linear_clamp_sampler, sampleUV);
             }
 
             return color;
@@ -197,13 +200,13 @@ float3 Contrast(float3 In, float Contrast)
         half4 Upsample(Varyings input) : SV_TARGET
         {
             float2 uv = input.texcoord;
-            half4 color = 0.0;
+        half4 color = half4(0, 0, 0, 0);
             half4 weights = _BloomWeights;
 
-            color += SAMPLE_TEXTURE2D_X(_BloomTextureA, s_linear_clamp_sampler, uv) * weights.x;
-            color += SAMPLE_TEXTURE2D_X(_BloomTextureB, s_linear_clamp_sampler, uv) * weights.y;
-            color += SAMPLE_TEXTURE2D_X(_BloomTextureC, s_linear_clamp_sampler, uv) * weights.z;
-            color += SAMPLE_TEXTURE2D_X(_BloomTextureD, s_linear_clamp_sampler, uv) * weights.w;
+        color += SAMPLE_TEXTURE2D(_BloomTextureA, s_linear_clamp_sampler, uv) * weights.x;
+        color += SAMPLE_TEXTURE2D(_BloomTextureB, s_linear_clamp_sampler, uv) * weights.y;
+        color += SAMPLE_TEXTURE2D(_BloomTextureC, s_linear_clamp_sampler, uv) * weights.z;
+        color += SAMPLE_TEXTURE2D(_BloomTextureD, s_linear_clamp_sampler, uv) * weights.w;
 
             return color;
         }
@@ -223,7 +226,7 @@ float3 Contrast(float3 In, float Contrast)
 
 // #if _BLOOM_COLOR || _BLOOM_BRIGHTNESS
             // Bloom
-            half3 bloom = SAMPLE_TEXTURE2D_X(_BloomTextureA, s_linear_clamp_sampler, uv).rgb;
+        half3 bloom = SAMPLE_TEXTURE2D(_BloomTextureA, s_linear_clamp_sampler, uv).rgb;
             bloom *= _BloomIntensity * _BloomColor.rgb;
             // bloom *= _BloomIntensity;
             color += bloom;

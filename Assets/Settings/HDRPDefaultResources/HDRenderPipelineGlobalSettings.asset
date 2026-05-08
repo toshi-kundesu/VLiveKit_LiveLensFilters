@@ -65,7 +65,59 @@ MonoBehaviour:
     type: 2}
   m_RenderPipelineRayTracingResources: {fileID: 0}
   beforeTransparentCustomPostProcesses: []
-  beforePostProcessCustomPostProcesses: []
+  beforePostProcessCustomPostProcesses:
+  - VLiveKit.LiveLensFilters.PostProcessing.ChromaticAberrationPlus, VLiveKit.LiveLensFilters.CreativeFx, Version=0.0.0.0,
+    Culture=neutral, PublicKeyToken=null
+  - VLiveKit.LiveLensFilters.PostProcessing.Halation, VLiveKit.LiveLensFilters.CreativeFx, Version=0.0.0.0, Culture=neutral,
+    PublicKeyToken=null
+  - VLiveKit.LiveLensFilters.PostProcessing.AnalogDamage, VLiveKit.LiveLensFilters.CreativeFx, Version=0.0.0.0, Culture=neutral,
+    PublicKeyToken=null
+  - VLiveKit.LiveLensFilters.PostProcessing.StarFilter, VLiveKit.LiveLensFilters.CreativeFx, Version=0.0.0.0, Culture=neutral,
+    PublicKeyToken=null
+  - VLiveKit.LiveLensFilters.PostProcessing.Prism, VLiveKit.LiveLensFilters.CreativeFx, Version=0.0.0.0, Culture=neutral,
+    PublicKeyToken=null
+  - VLiveKit.LiveLensFilters.PostProcessing.DreamBlur, VLiveKit.LiveLensFilters.CreativeFx, Version=0.0.0.0, Culture=neutral,
+    PublicKeyToken=null
+  - VLiveKit.LiveLensFilters.PostProcessing.PixelSort, VLiveKit.LiveLensFilters.CreativeFx, Version=0.0.0.0, Culture=neutral,
+    PublicKeyToken=null
+  - VLiveKit.LiveLensFilters.PostProcessing.LightLeak, VLiveKit.LiveLensFilters.CreativeFx, Version=0.0.0.0, Culture=neutral,
+    PublicKeyToken=null
+  - VLiveKit.LiveLensFilters.PostProcessing.DepthFogOverlay, VLiveKit.LiveLensFilters.CreativeFx, Version=0.0.0.0, Culture=neutral,
+    PublicKeyToken=null
+  - VLiveKit.LiveLensFilters.PostProcessing.ColorQuantize, VLiveKit.LiveLensFilters.CreativeFx, Version=0.0.0.0, Culture=neutral,
+    PublicKeyToken=null
+  - VLiveKit.LiveLensFilters.PostProcessing.FilmGrain, VLiveKit.LiveLensFilters.CreativeFx, Version=0.0.0.0, Culture=neutral,
+    PublicKeyToken=null
+  - VLiveKit.LiveLensFilters.PostProcessing.LensVignette, VLiveKit.LiveLensFilters.CreativeFx, Version=0.0.0.0, Culture=neutral,
+    PublicKeyToken=null
+  - VLiveKit.LiveLensFilters.PostProcessing.LensDistortionFx, VLiveKit.LiveLensFilters.CreativeFx, Version=0.0.0.0, Culture=neutral,
+    PublicKeyToken=null
+  - VLiveKit.LiveLensFilters.PostProcessing.AnamorphicFlare, VLiveKit.LiveLensFilters.CreativeFx, Version=0.0.0.0, Culture=neutral,
+    PublicKeyToken=null
+  - VLiveKit.LiveLensFilters.PostProcessing.BleachBypass, VLiveKit.LiveLensFilters.CreativeFx, Version=0.0.0.0, Culture=neutral,
+    PublicKeyToken=null
+  - VLiveKit.LiveLensFilters.PostProcessing.ThreeStripColor, VLiveKit.LiveLensFilters.CreativeFx, Version=0.0.0.0, Culture=neutral,
+    PublicKeyToken=null
+  - VLiveKit.LiveLensFilters.PostProcessing.LightWrap, VLiveKit.LiveLensFilters.CreativeFx, Version=0.0.0.0, Culture=neutral,
+    PublicKeyToken=null
+  - VLiveKit.LiveLensFilters.PostProcessing.AnimeSpeedLines, VLiveKit.LiveLensFilters.CreativeFx, Version=0.0.0.0, Culture=neutral,
+    PublicKeyToken=null
+  - VLiveKit.LiveLensFilters.PostProcessing.RGBGlitch, VLiveKit.LiveLensFilters.CreativeFx, Version=0.0.0.0, Culture=neutral,
+    PublicKeyToken=null
+  - VLiveKit.LiveLensFilters.PostProcessing.BlockTearGlitch, VLiveKit.LiveLensFilters.CreativeFx, Version=0.0.0.0, Culture=neutral,
+    PublicKeyToken=null
+  - VLiveKit.LiveLensFilters.PostProcessing.ScanRollGlitch, VLiveKit.LiveLensFilters.CreativeFx, Version=0.0.0.0, Culture=neutral,
+    PublicKeyToken=null
+  - VLiveKit.LiveLensFilters.PostProcessing.WaterDroplets, VLiveKit.LiveLensFilters.CreativeFx, Version=0.0.0.0, Culture=neutral,
+    PublicKeyToken=null
+  - VLiveKit.LiveLensFilters.PostProcessing.CinemaScope, VLiveKit.LiveLensFilters.CreativeFx, Version=0.0.0.0, Culture=neutral,
+    PublicKeyToken=null
+  - VLiveKit.LiveLensFilters.PostProcessing.LightSweep, VLiveKit.LiveLensFilters.CreativeFx, Version=0.0.0.0, Culture=neutral,
+    PublicKeyToken=null
+  - VLiveKit.LiveLensFilters.PostProcessing.LightRays, VLiveKit.LiveLensFilters.CreativeFx, Version=0.0.0.0, Culture=neutral,
+    PublicKeyToken=null
+  - VLiveKit.LiveLensFilters.PostProcessing.ZoomBlur, VLiveKit.LiveLensFilters.CreativeFx, Version=0.0.0.0, Culture=neutral,
+    PublicKeyToken=null
   afterPostProcessBlursCustomPostProcesses: []
   afterPostProcessCustomPostProcesses: []
   beforeTAACustomPostProcesses: []

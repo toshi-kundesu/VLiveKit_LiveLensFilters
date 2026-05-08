@@ -1,44 +1,46 @@
 # VLive Lens Filters
 
-ライブ映像向けの post-process / lens filter 表現をまとめた Unity package です。
+HDRP / Visual Compositor 向けの、ライブ映像用ポストプロセスとレンズフィルター表現をまとめた Unity package です。
 
 ## Package
 
 - Package name: `com.toshi.vlivekit.lensfilters`
-- Version: `0.0.5`
+- Version: `0.1.2`
 - Unity: 2022.3
 - Repository: https://github.com/toshi-kundesu/VLiveKit_LiveLensFilters
 - Package root: `Assets/toshi.VLiveKit/LiveLensFilters`
 
-## 主な内容
+## Effects
 
-- Diffusion や character bloom などの映像フィルター
-- HDRP の color / depth / normal / stencil を使う補助 utility
-- ライブカメラの見た目を調整するための shader / material
+CreativeFx は `Post-processing/VLiveKit` の Volume Component として追加できます。
 
-## 依存・同梱 asset
+- Film / lens: `Halation`, `Film Grain`, `Light Leak`, `Lens Vignette`, `Lens Distortion`, `Chromatic Aberration Plus`
+- Optical light: `Anamorphic Flare`, `Star Filter`, `Light Sweep`, `Light Rays`, `Light Wrap`
+- Glass / atmosphere: `Prism`, `Dream Blur`, `Water Droplets`, `Depth Fog Overlay`
+- Color / anime: `Bleach Bypass`, `Three Strip Color`, `Color Quantize`, `Anime Speed Lines`, `Cinema Scope`
+- Glitch / live VJ: `Analog Damage`, `RGB Glitch`, `Block Tear Glitch`, `Scan Roll Glitch`, `Pixel Sort`, `Zoom Blur`
 
-- Unity Visual Compositor 0.30.7-preview
-- Kino: https://github.com/keijiro/Kino
+Scene View and Preview cameras are bypassed so the editor view stays usable while the effects remain active for Game cameras.
 
-## インストール
+## Install
 
-Unity の `Packages/manifest.json` の `dependencies` に追加します。
+Add this package to `Packages/manifest.json`.
 
 ```json
 {
   "dependencies": {
-    "com.toshi.vlivekit.lensfilters": "https://github.com/toshi-kundesu/VLiveKit_LiveLensFilters.git?path=/Assets/toshi.VLiveKit/LiveLensFilters#main"
+    "com.toshi.vlivekit.lensfilters": "0.1.2"
   }
 }
 ```
 
-VLiveKit sandbox では submodule として `Packages/VLiveKit_LiveLensFilters` に配置し、`file:` 参照で読み込んでいます。
+For local development in the VLiveKit sandbox, the package is installed as a submodule under `Packages/VLiveKit_LiveLensFilters` and referenced with a local `file:` dependency.
 
-## 注意
+## Dependencies
 
-- Kino 由来の asset には元 repository の license が適用されます。
+- Unity Visual Compositor 0.30.7-preview
+- Kino post-processing assets are included under their original license.
 
 ## License
 
-この package 独自のコードと asset は repository の `LICENSE` に従います。third-party asset を含む場合は、それぞれの license / README を確認してください。
+Original package code and assets follow this repository's `LICENSE`. Third-party assets keep their own licenses and notices.
