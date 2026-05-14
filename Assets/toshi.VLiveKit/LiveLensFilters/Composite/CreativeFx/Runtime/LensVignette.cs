@@ -1,10 +1,10 @@
-using UnityEngine;
+﻿using UnityEngine;
 using UnityEngine.Rendering;
 using SerializableAttribute = System.SerializableAttribute;
 
 namespace VLiveKit.LiveLensFilters.PostProcessing
 {
-    [Serializable, VolumeComponentMenu("Post-processing/VLiveKit/Lens Vignette")]
+    [Serializable, VolumeComponentMenu("Post-processing/toshi/LensFilters/Lens Vignette")]
     public sealed class LensVignette : CreativeFxBase
     {
         public ClampedFloatParameter roundness = new ClampedFloatParameter(0.55f, 0, 1.5f);

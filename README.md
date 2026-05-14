@@ -67,3 +67,22 @@ HDRPでのポストプロセス実装を補助するための機能：
     "com.toshi.vlivekit.lensfilters": "https://github.com/toshi-kundesu/VLiveKit_LiveLensFilters.git?path=/Assets/toshi.VLiveKit/LiveLensFilters#main"
   }
 }
+```
+
+---
+
+## Rain On Lens
+
+`Rain On Lens` is available from `Post-processing/toshi/LensFilters/Rain On Lens`.
+
+It uses the VLiveKit `CreativeFx` water-droplet mode to add animated rain beads, falling trails, refraction, and highlights as an HDRP custom post-process. Add it to an HDRP Volume, then tune:
+
+- `Intensity`: overall blend amount.
+- `Rain Amount`: droplet density.
+- `Droplet Size`: bead size.
+- `Refraction`: screen-space distortion through droplets.
+- `Highlight`: wet sparkle strength.
+- `Fall Speed`: downward animation speed.
+- `Tint`: subtle color and alpha for the water layer.
+
+The original `sixwaytest/Assets/RaindropShader` reference is a Heartfelt-derived shader marked `CC BY-NC-SA 3.0`, so VLiveKit keeps this package on its own CreativeFx implementation instead of copying that source shader into the public package.

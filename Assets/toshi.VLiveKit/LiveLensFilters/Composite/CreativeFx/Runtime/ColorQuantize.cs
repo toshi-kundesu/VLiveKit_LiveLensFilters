@@ -1,10 +1,10 @@
-using UnityEngine;
+﻿using UnityEngine;
 using UnityEngine.Rendering;
 using SerializableAttribute = System.SerializableAttribute;
 
 namespace VLiveKit.LiveLensFilters.PostProcessing
 {
-    [Serializable, VolumeComponentMenu("Post-processing/VLiveKit/Color Quantize")]
+    [Serializable, VolumeComponentMenu("Post-processing/toshi/LensFilters/Color Quantize")]
     public sealed class ColorQuantize : CreativeFxBase
     {
         public ClampedIntParameter steps = new ClampedIntParameter(6, 2, 32);

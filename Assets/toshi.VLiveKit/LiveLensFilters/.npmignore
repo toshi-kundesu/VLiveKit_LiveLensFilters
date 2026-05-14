@@ -1,4 +1,6 @@
 *.tgz
+Sample/
+Sample.meta
 Composite/LiveHouseVolume/
 Composite/LiveHouseVolume.meta
 Composite/LiveHouseVolume 1/

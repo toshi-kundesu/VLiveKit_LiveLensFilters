@@ -1,10 +1,10 @@
-using UnityEngine;
+﻿using UnityEngine;
 using UnityEngine.Rendering;
 using SerializableAttribute = System.SerializableAttribute;
 
 namespace VLiveKit.LiveLensFilters.PostProcessing
 {
-    [Serializable, VolumeComponentMenu("Post-processing/VLiveKit/Light Wrap")]
+    [Serializable, VolumeComponentMenu("Post-processing/toshi/LensFilters/Light Wrap")]
     public sealed class LightWrap : CreativeFxBase
     {
         public ClampedFloatParameter threshold = new ClampedFloatParameter(0.55f, 0, 4);

@@ -1,10 +1,10 @@
-using UnityEngine;
+﻿using UnityEngine;
 using UnityEngine.Rendering;
 using SerializableAttribute = System.SerializableAttribute;
 
 namespace VLiveKit.LiveLensFilters.PostProcessing
 {
-    [Serializable, VolumeComponentMenu("Post-processing/VLiveKit/RGB Glitch")]
+    [Serializable, VolumeComponentMenu("Post-processing/toshi/LensFilters/RGB Glitch")]
     public sealed class RGBGlitch : CreativeFxBase
     {
         public ClampedFloatParameter probability = new ClampedFloatParameter(0.18f, 0, 1);

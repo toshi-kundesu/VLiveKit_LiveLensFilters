@@ -1,10 +1,10 @@
-using UnityEngine;
+﻿using UnityEngine;
 using UnityEngine.Rendering;
 using SerializableAttribute = System.SerializableAttribute;
 
 namespace VLiveKit.LiveLensFilters.PostProcessing
 {
-    [Serializable, VolumeComponentMenu("Post-processing/VLiveKit/Cinema Scope")]
+    [Serializable, VolumeComponentMenu("Post-processing/toshi/LensFilters/Cinema Scope")]
     public sealed class CinemaScope : CreativeFxBase
     {
         public ClampedFloatParameter aspect = new ClampedFloatParameter(0.6f, 0, 1);

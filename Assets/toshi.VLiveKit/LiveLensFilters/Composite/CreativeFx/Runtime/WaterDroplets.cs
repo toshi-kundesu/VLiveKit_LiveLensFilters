@@ -1,10 +1,10 @@
-using UnityEngine;
+﻿using UnityEngine;
 using UnityEngine.Rendering;
 using SerializableAttribute = System.SerializableAttribute;
 
 namespace VLiveKit.LiveLensFilters.PostProcessing
 {
-    [Serializable, VolumeComponentMenu("Post-processing/VLiveKit/Water Droplets")]
+    [Serializable, VolumeComponentMenu("Post-processing/toshi/LensFilters/Water Droplets")]
     public sealed class WaterDroplets : CreativeFxBase
     {
         public ClampedFloatParameter density = new ClampedFloatParameter(0.56f, 0, 1);

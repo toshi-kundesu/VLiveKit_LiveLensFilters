@@ -122,7 +122,7 @@ class LayerMaskPainter : CustomPass
             desc.stateBlock = block;
         }
 
-        CoreUtils.DrawRendererList(renderContext, cmd, renderContext.CreateRendererList(desc));
+        CoreUtils.DrawRendererList(cmd, renderContext.CreateRendererList(desc));
     }
 
     protected override void Cleanup()

@@ -1,4 +1,4 @@
-Shader "Hidden/VLiveKit/LiveLensFilters/CreativeFx"
+Shader "Hidden/toshi/LensFilters/CreativeFx"
 {
     HLSLINCLUDE
 
@@ -30,17 +30,25 @@ Shader "Hidden/VLiveKit/LiveLensFilters/CreativeFx"
     }
 
     TEXTURE2D_X(_InputTexture);
+    TEXTURE2D(_PatternTexture);
     float4 _InputTexture_TexelSize;
 
     int _Mode;
     int _Steps;
+    int _Pattern;
     float _Intensity;
     float _Amount;
     float _Threshold;
     float _Radius;
     float _Near;
     float _Far;
+    float _Softness;
+    float _Rotation;
+    float _UsePatternTexture;
     float _TimeValue;
+    float _Zoom;
+    float2 _Offset;
+    float2 _Pivot;
     float4 _Color;
     float4 _Color2;
 
@@ -307,6 +315,28 @@ Shader "Hidden/VLiveKit/LiveLensFilters/CreativeFx"
         return c;
     }
 
+    float2 ScreenTransformUV(float2 uv)
+    {
+        float aspect = _ScreenSize.x / max(1.0, _ScreenSize.y);
+        float zoom = max(0.01, _Zoom);
+        float2 p = uv - _Offset - _Pivot;
+        p.x *= aspect;
+
+        float angle = -radians(_Rotation);
+        float s = sin(angle);
+        float c = cos(angle);
+        p = float2(c * p.x - s * p.y, s * p.x + c * p.y);
+        p.x /= aspect;
+
+        return p / zoom + _Pivot;
+    }
+
+    float3 ScreenTransform(float2 uv, float3 src)
+    {
+        float3 transformed = SampleInput(ScreenTransformUV(uv)).rgb;
+        return lerp(src, transformed, _Intensity);
+    }
+
     float3 AnamorphicFlare(float2 uv, float3 src)
     {
         float2 texel = _InputTexture_TexelSize.xy;
@@ -538,12 +568,188 @@ Shader "Hidden/VLiveKit/LiveLensFilters/CreativeFx"
         return lerp(c, ScreenBlend(c, _Color.rgb * 0.25), _Threshold * gate * _Intensity);
     }
 
+    float VLiveDOFDepthCoc(float2 uv)
+    {
+        uint2 positionSS = (uint2)(saturate(uv) * max(float2(1.0, 1.0), _ScreenSize.xy - 1.0));
+        float rawDepth = LoadCameraDepth(positionSS);
+        float depth = LinearEyeDepth(rawDepth, _ZBufferParams);
+        float focusDistance = max(0.01, _Near);
+        float focusRange = max(0.01, _Far);
+        float nearCoc = saturate((focusDistance - depth - focusRange) / focusRange) * _Color2.x;
+        float farCoc = saturate((depth - focusDistance - focusRange) / focusRange) * _Color2.y;
+        return max(nearCoc, farCoc);
+    }
+
+    float3 VLiveDOF(float2 uv, float3 src)
+    {
+        float coc = VLiveDOFDepthCoc(uv);
+        float sampleRadius = _Radius * coc;
+
+        float3 blur = src * 0.18;
+        float3 bokeh = 0;
+        float total = 0.18;
+        float bokehTotal = 0;
+        float2 texel = _InputTexture_TexelSize.xy;
+
+        UNITY_UNROLL
+        for (int i = 0; i < 24; i++)
+        {
+            float active = step(i + 0.5, (float)_Steps);
+            float sample01 = (i + 0.5) / 24.0;
+            float angle = i * 2.39996323 + 0.35;
+            float ring = sqrt(sample01);
+            float2 disk = float2(cos(angle), sin(angle)) * ring;
+            float2 suv = uv + disk * texel * sampleRadius;
+            float3 s = SampleInput(suv).rgb;
+            float sampleCoc = VLiveDOFDepthCoc(suv);
+            float blurWeight = active * lerp(0.78, 1.18, saturate(sampleCoc));
+
+            blur += s * blurWeight;
+            total += blurWeight;
+
+            float highlight = smoothstep(_Threshold, _Threshold + 1.0, max(s.r, max(s.g, s.b)));
+            float aperture = lerp(0.68, 1.28, smoothstep(0.35, 1.0, ring));
+            float bokehWeight = active * highlight * saturate(max(coc, sampleCoc)) * aperture;
+            bokeh += max(float3(0.0, 0.0, 0.0), s - float3(_Threshold, _Threshold, _Threshold) * 0.45) * bokehWeight;
+            bokehTotal += bokehWeight;
+        }
+
+        float dofBlend = saturate(coc * _Intensity);
+        float3 softened = blur / max(0.001, total);
+        float3 dof = lerp(src, softened, dofBlend);
+        float3 bokehColor = bokeh / max(0.001, bokehTotal) * _Color.rgb * _Amount * _Intensity * coc * 2.75;
+        return max(float3(0.0, 0.0, 0.0), dof + bokehColor);
+    }
+
+    float2 RotatePattern(float2 p, float angle)
+    {
+        float s = sin(angle);
+        float c = cos(angle);
+        return float2(c * p.x - s * p.y, s * p.x + c * p.y);
+    }
+
+    float StrokeMask(float2 p, float2 a, float2 b, float width, float softness)
+    {
+        float2 pa = p - a;
+        float2 ba = b - a;
+        float h = saturate(dot(pa, ba) / max(0.0001, dot(ba, ba)));
+        float d = length(pa - ba * h);
+        return 1.0 - smoothstep(width, width + softness, d);
+    }
+
+    float TreeGlyph(float2 p, float offset)
+    {
+        float2 q = p - float2(offset, -0.02);
+        float softness = lerp(0.01, 0.11, _Softness);
+        float mask = 0.0;
+
+        mask = max(mask, StrokeMask(q, float2(0.0, -0.75), float2(0.0, 0.64), 0.055, softness));
+        mask = max(mask, StrokeMask(q, float2(-0.28, 0.12), float2(0.28, 0.12), 0.055, softness));
+        mask = max(mask, StrokeMask(q, float2(-0.03, 0.02), float2(-0.32, -0.46), 0.06, softness));
+        mask = max(mask, StrokeMask(q, float2(0.03, 0.02), float2(0.32, -0.46), 0.06, softness));
+        mask = max(mask, StrokeMask(q, float2(0.0, 0.62), float2(-0.2, 0.34), 0.045, softness));
+        mask = max(mask, StrokeMask(q, float2(0.0, 0.62), float2(0.2, 0.34), 0.045, softness));
+
+        float bounds = 1.0 - smoothstep(0.86, 1.04, length(q * float2(0.9, 0.78)));
+        return saturate(mask * bounds);
+    }
+
+    float ForestPattern(float2 p)
+    {
+        return max(TreeGlyph(p, -0.24), TreeGlyph(p, 0.24));
+    }
+
+    float StarPattern(float2 p)
+    {
+        float radius = length(p);
+        float angle = atan2(p.y, p.x) + 1.5707963;
+        float spoke = pow(max(0.0001, saturate(cos(angle * 5.0) * 0.5 + 0.5)), 0.42);
+        float edge = lerp(0.36, 0.86, spoke);
+        float softness = lerp(0.02, 0.14, _Softness);
+        return 1.0 - smoothstep(edge, edge + softness, radius);
+    }
+
+    float HeartPattern(float2 p)
+    {
+        p.y += 0.12;
+        p *= 1.22;
+        float x = p.x;
+        float y = p.y;
+        float a = x * x + y * y - 0.38;
+        float heart = a * a * a - x * x * y * y * y;
+        float softness = lerp(0.015, 0.18, _Softness);
+        return 1.0 - smoothstep(0.0, softness, heart);
+    }
+
+    float CirclePattern(float2 p)
+    {
+        float softness = lerp(0.02, 0.18, _Softness);
+        return 1.0 - smoothstep(0.72, 0.72 + softness, length(p));
+    }
+
+    float TexturePattern(float2 p)
+    {
+        float2 patternUV = p * 0.5 + 0.5;
+        float bounds = step(0.0, patternUV.x) * step(patternUV.x, 1.0) *
+                       step(0.0, patternUV.y) * step(patternUV.y, 1.0);
+        float4 texel = SAMPLE_TEXTURE2D(_PatternTexture, s_linear_clamp_sampler, saturate(patternUV));
+        float alpha = max(texel.a, Luma(texel.rgb));
+        float softness = lerp(0.02, 0.36, _Softness);
+        return bounds * smoothstep(0.12, 0.12 + softness, alpha);
+    }
+
+    float PatternMask(float2 p)
+    {
+        p = RotatePattern(p, _Rotation);
+
+        if (_UsePatternTexture > 0.5)
+            return TexturePattern(p);
+
+        if (_Pattern == 1)
+            return StarPattern(p);
+        if (_Pattern == 2)
+            return HeartPattern(p);
+        if (_Pattern == 3)
+            return CirclePattern(p);
+
+        return ForestPattern(p);
+    }
+
+    float3 ShapedBokeh(float2 uv, float3 src)
+    {
+        float halfSamples = max(1.0, floor(((float)_Steps - 1.0) * 0.5));
+        float radiusPixels = lerp(8.0, 96.0, _Radius);
+        float2 radiusUV = _InputTexture_TexelSize.xy * radiusPixels;
+        float brightSoftness = lerp(0.18, 1.35, _Softness);
+        float3 bokeh = 0.0;
+
+        [loop]
+        for (int y = -4; y <= 4; y++)
+        {
+            [loop]
+            for (int x = -4; x <= 4; x++)
+            {
+                float active = step(abs((float)x), halfSamples + 0.01) *
+                               step(abs((float)y), halfSamples + 0.01);
+                float2 p = float2(x, y) / halfSamples;
+                float mask = PatternMask(p) * active;
+                float3 sampleColor = SampleInput(uv - p * radiusUV).rgb;
+                float bright = smoothstep(_Threshold, _Threshold + brightSoftness,
+                                          max(sampleColor.r, max(sampleColor.g, sampleColor.b)));
+                float3 highlight = max(float3(0.0, 0.0, 0.0), sampleColor - _Threshold * 0.35);
+                bokeh += highlight * bright * mask;
+            }
+        }
+
+        return max(float3(0.0, 0.0, 0.0), src + bokeh * _Color.rgb * _Amount * _Intensity * 0.45);
+    }
+
     float4 Fragment(Varyings input) : SV_Target
     {
         UNITY_SETUP_STEREO_EYE_INDEX_POST_VERTEX(input);
 
-        uint2 positionSS = input.texcoord * _ScreenSize.xy;
-        float4 src4 = LOAD_TEXTURE2D_X(_InputTexture, positionSS);
+        uint2 positionSS = (uint2)(saturate(input.texcoord) * max(float2(1.0, 1.0), _ScreenSize.xy - 1.0));
+        float4 src4 = SampleInput(input.texcoord);
         float3 src = src4.rgb;
         float3 outColor = src;
 
@@ -573,6 +779,9 @@ Shader "Hidden/VLiveKit/LiveLensFilters/CreativeFx"
         else if (_Mode == 23) outColor = LightSweep(input.texcoord, src);
         else if (_Mode == 24) outColor = LightRays(input.texcoord, src);
         else if (_Mode == 25) outColor = ZoomBlur(input.texcoord, src);
+        else if (_Mode == 26) outColor = VLiveDOF(input.texcoord, src);
+        else if (_Mode == 27) outColor = ShapedBokeh(input.texcoord, src);
+        else if (_Mode == 28) outColor = ScreenTransform(input.texcoord, src);
 
         return float4(outColor, src4.a);
     }

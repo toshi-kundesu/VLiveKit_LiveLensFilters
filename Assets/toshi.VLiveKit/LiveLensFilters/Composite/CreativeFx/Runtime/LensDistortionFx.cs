@@ -1,10 +1,10 @@
-using UnityEngine;
+﻿using UnityEngine;
 using UnityEngine.Rendering;
 using SerializableAttribute = System.SerializableAttribute;
 
 namespace VLiveKit.LiveLensFilters.PostProcessing
 {
-    [Serializable, VolumeComponentMenu("Post-processing/VLiveKit/Lens Distortion")]
+    [Serializable, VolumeComponentMenu("Post-processing/toshi/LensFilters/Lens Distortion")]
     public sealed class LensDistortionFx : CreativeFxBase
     {
         public ClampedFloatParameter amount = new ClampedFloatParameter(0.65f, 0, 1);

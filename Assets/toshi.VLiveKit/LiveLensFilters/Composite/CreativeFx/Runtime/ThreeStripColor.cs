@@ -1,10 +1,10 @@
-using UnityEngine;
+﻿using UnityEngine;
 using UnityEngine.Rendering;
 using SerializableAttribute = System.SerializableAttribute;
 
 namespace VLiveKit.LiveLensFilters.PostProcessing
 {
-    [Serializable, VolumeComponentMenu("Post-processing/VLiveKit/Three Strip Color")]
+    [Serializable, VolumeComponentMenu("Post-processing/toshi/LensFilters/Three Strip Color")]
     public sealed class ThreeStripColor : CreativeFxBase
     {
         public ClampedFloatParameter density = new ClampedFloatParameter(0.35f, 0, 1);

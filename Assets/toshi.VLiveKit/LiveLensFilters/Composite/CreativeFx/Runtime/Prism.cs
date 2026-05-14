@@ -1,10 +1,10 @@
-using UnityEngine;
+﻿using UnityEngine;
 using UnityEngine.Rendering;
 using SerializableAttribute = System.SerializableAttribute;
 
 namespace VLiveKit.LiveLensFilters.PostProcessing
 {
-    [Serializable, VolumeComponentMenu("Post-processing/VLiveKit/Prism")]
+    [Serializable, VolumeComponentMenu("Post-processing/toshi/LensFilters/Prism")]
     public sealed class Prism : CreativeFxBase
     {
         public ClampedFloatParameter refraction = new ClampedFloatParameter(0.45f, 0, 1);

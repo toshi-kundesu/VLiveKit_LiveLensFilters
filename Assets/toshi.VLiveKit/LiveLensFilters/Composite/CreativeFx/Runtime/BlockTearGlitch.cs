@@ -1,10 +1,10 @@
-using UnityEngine;
+﻿using UnityEngine;
 using UnityEngine.Rendering;
 using SerializableAttribute = System.SerializableAttribute;
 
 namespace VLiveKit.LiveLensFilters.PostProcessing
 {
-    [Serializable, VolumeComponentMenu("Post-processing/VLiveKit/Block Tear Glitch")]
+    [Serializable, VolumeComponentMenu("Post-processing/toshi/LensFilters/Block Tear Glitch")]
     public sealed class BlockTearGlitch : CreativeFxBase
     {
         public ClampedFloatParameter probability = new ClampedFloatParameter(0.12f, 0, 1);

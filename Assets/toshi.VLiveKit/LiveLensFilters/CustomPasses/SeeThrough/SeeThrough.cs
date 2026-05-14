@@ -167,7 +167,7 @@ class SeeThrough : CustomPass
 
         desc.stateBlock = stateBlock;
 
-        CoreUtils.DrawRendererList(renderContext, cmd, renderContext.CreateRendererList(desc));
+        CoreUtils.DrawRendererList(cmd, renderContext.CreateRendererList(desc));
     }
 
     static void SyncRenderTextureToCamera(RenderTexture rt, Camera camera)

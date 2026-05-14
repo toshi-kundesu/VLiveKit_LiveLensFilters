@@ -1,10 +1,10 @@
-using UnityEngine;
+﻿using UnityEngine;
 using UnityEngine.Rendering;
 using SerializableAttribute = System.SerializableAttribute;
 
 namespace VLiveKit.LiveLensFilters.PostProcessing
 {
-    [Serializable, VolumeComponentMenu("Post-processing/VLiveKit/Zoom Blur")]
+    [Serializable, VolumeComponentMenu("Post-processing/toshi/LensFilters/Zoom Blur")]
     public sealed class ZoomBlur : CreativeFxBase
     {
         public ClampedFloatParameter amount = new ClampedFloatParameter(0.42f, 0, 1);

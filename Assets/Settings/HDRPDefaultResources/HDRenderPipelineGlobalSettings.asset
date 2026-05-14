@@ -116,8 +116,12 @@ MonoBehaviour:
     PublicKeyToken=null
   - VLiveKit.LiveLensFilters.PostProcessing.LightRays, VLiveKit.LiveLensFilters.CreativeFx, Version=0.0.0.0, Culture=neutral,
     PublicKeyToken=null
+  - VLiveKit.LiveLensFilters.PostProcessing.VLiveDOF, VLiveKit.LiveLensFilters.CreativeFx, Version=0.0.0.0, Culture=neutral,
+    PublicKeyToken=null
   - VLiveKit.LiveLensFilters.PostProcessing.ZoomBlur, VLiveKit.LiveLensFilters.CreativeFx, Version=0.0.0.0, Culture=neutral,
     PublicKeyToken=null
+  - VLiveKit.LiveLensFilters.PostProcessing.ScreenTransform, VLiveKit.LiveLensFilters.CreativeFx, Version=0.0.0.0,
+    Culture=neutral, PublicKeyToken=null
   afterPostProcessBlursCustomPostProcesses: []
   afterPostProcessCustomPostProcesses: []
   beforeTAACustomPostProcesses: []

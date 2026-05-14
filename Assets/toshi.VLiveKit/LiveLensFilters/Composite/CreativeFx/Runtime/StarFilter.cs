@@ -1,10 +1,10 @@
-using UnityEngine;
+﻿using UnityEngine;
 using UnityEngine.Rendering;
 using SerializableAttribute = System.SerializableAttribute;
 
 namespace VLiveKit.LiveLensFilters.PostProcessing
 {
-    [Serializable, VolumeComponentMenu("Post-processing/VLiveKit/Star Filter")]
+    [Serializable, VolumeComponentMenu("Post-processing/toshi/LensFilters/Star Filter")]
     public sealed class StarFilter : CreativeFxBase
     {
         public ClampedFloatParameter threshold = new ClampedFloatParameter(0.8f, 0, 4);

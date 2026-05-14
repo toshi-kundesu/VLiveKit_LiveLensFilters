@@ -26,6 +26,14 @@ namespace VLiveKit.LiveLensFilters.PostProcessing
             internal static readonly int Steps = Shader.PropertyToID("_Steps");
             internal static readonly int Near = Shader.PropertyToID("_Near");
             internal static readonly int Far = Shader.PropertyToID("_Far");
+            internal static readonly int Pattern = Shader.PropertyToID("_Pattern");
+            internal static readonly int PatternTexture = Shader.PropertyToID("_PatternTexture");
+            internal static readonly int UsePatternTexture = Shader.PropertyToID("_UsePatternTexture");
+            internal static readonly int Softness = Shader.PropertyToID("_Softness");
+            internal static readonly int Rotation = Shader.PropertyToID("_Rotation");
+            internal static readonly int Offset = Shader.PropertyToID("_Offset");
+            internal static readonly int Pivot = Shader.PropertyToID("_Pivot");
+            internal static readonly int Zoom = Shader.PropertyToID("_Zoom");
         }
 
         public bool IsActive() => material != null && intensity.value > 0;
@@ -37,12 +45,16 @@ namespace VLiveKit.LiveLensFilters.PostProcessing
 
         public override void Setup()
         {
-            material = CoreUtils.CreateEngineMaterial("Hidden/VLiveKit/LiveLensFilters/CreativeFx");
+            material = CoreUtils.CreateEngineMaterial("Hidden/toshi/LensFilters/CreativeFx");
         }
 
         public override void Render(CommandBuffer cmd, HDCamera camera, RTHandle srcRT, RTHandle destRT)
         {
-            if (material == null) return;
+            if (material == null || material.shader == null || !material.shader.isSupported)
+            {
+                HDUtils.BlitCameraTexture(cmd, srcRT, destRT);
+                return;
+            }
 
             if (camera.camera.cameraType == CameraType.SceneView ||
                 camera.camera.cameraType == CameraType.Preview)

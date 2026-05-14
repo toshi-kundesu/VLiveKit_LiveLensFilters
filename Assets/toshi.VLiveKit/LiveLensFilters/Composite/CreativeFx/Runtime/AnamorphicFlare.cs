@@ -1,10 +1,10 @@
-using UnityEngine;
+﻿using UnityEngine;
 using UnityEngine.Rendering;
 using SerializableAttribute = System.SerializableAttribute;
 
 namespace VLiveKit.LiveLensFilters.PostProcessing
 {
-    [Serializable, VolumeComponentMenu("Post-processing/VLiveKit/Anamorphic Flare")]
+    [Serializable, VolumeComponentMenu("Post-processing/toshi/LensFilters/Anamorphic Flare")]
     public sealed class AnamorphicFlare : CreativeFxBase
     {
         public ClampedFloatParameter threshold = new ClampedFloatParameter(0.75f, 0, 5);

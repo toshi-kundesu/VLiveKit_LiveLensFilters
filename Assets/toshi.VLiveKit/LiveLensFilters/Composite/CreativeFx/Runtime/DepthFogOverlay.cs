@@ -1,10 +1,10 @@
-using UnityEngine;
+﻿using UnityEngine;
 using UnityEngine.Rendering;
 using SerializableAttribute = System.SerializableAttribute;
 
 namespace VLiveKit.LiveLensFilters.PostProcessing
 {
-    [Serializable, VolumeComponentMenu("Post-processing/VLiveKit/Depth Fog Overlay")]
+    [Serializable, VolumeComponentMenu("Post-processing/toshi/LensFilters/Depth Fog Overlay")]
     public sealed class DepthFogOverlay : CreativeFxBase
     {
         public ColorParameter fogColor = new ColorParameter(new Color(0.55f, 0.72f, 0.78f), false, false, true);

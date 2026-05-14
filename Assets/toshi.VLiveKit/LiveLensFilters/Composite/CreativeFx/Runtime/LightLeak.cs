@@ -1,10 +1,10 @@
-using UnityEngine;
+﻿using UnityEngine;
 using UnityEngine.Rendering;
 using SerializableAttribute = System.SerializableAttribute;
 
 namespace VLiveKit.LiveLensFilters.PostProcessing
 {
-    [Serializable, VolumeComponentMenu("Post-processing/VLiveKit/Light Leak")]
+    [Serializable, VolumeComponentMenu("Post-processing/toshi/LensFilters/Light Leak")]
     public sealed class LightLeak : CreativeFxBase
     {
         public ColorParameter warm = new ColorParameter(new Color(1, 0.42f, 0.12f), false, false, true);

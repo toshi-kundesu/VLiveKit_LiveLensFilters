@@ -1,10 +1,10 @@
-using UnityEngine;
+﻿using UnityEngine;
 using UnityEngine.Rendering;
 using SerializableAttribute = System.SerializableAttribute;
 
 namespace VLiveKit.LiveLensFilters.PostProcessing
 {
-    [Serializable, VolumeComponentMenu("Post-processing/VLiveKit/Analog Damage")]
+    [Serializable, VolumeComponentMenu("Post-processing/toshi/LensFilters/Analog Damage")]
     public sealed class AnalogDamage : CreativeFxBase
     {
         public ClampedFloatParameter noise = new ClampedFloatParameter(0.35f, 0, 1);

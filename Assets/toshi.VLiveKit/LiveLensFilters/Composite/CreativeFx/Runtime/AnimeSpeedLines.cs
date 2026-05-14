@@ -1,10 +1,10 @@
-using UnityEngine;
+﻿using UnityEngine;
 using UnityEngine.Rendering;
 using SerializableAttribute = System.SerializableAttribute;
 
 namespace VLiveKit.LiveLensFilters.PostProcessing
 {
-    [Serializable, VolumeComponentMenu("Post-processing/VLiveKit/Anime Speed Lines")]
+    [Serializable, VolumeComponentMenu("Post-processing/toshi/LensFilters/Anime Speed Lines")]
     public sealed class AnimeSpeedLines : CreativeFxBase
     {
         public ClampedFloatParameter density = new ClampedFloatParameter(0.55f, 0, 1);

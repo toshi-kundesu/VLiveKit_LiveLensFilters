@@ -1,10 +1,10 @@
-using UnityEngine;
+﻿using UnityEngine;
 using UnityEngine.Rendering;
 using SerializableAttribute = System.SerializableAttribute;
 
 namespace VLiveKit.LiveLensFilters.PostProcessing
 {
-    [Serializable, VolumeComponentMenu("Post-processing/VLiveKit/Halation")]
+    [Serializable, VolumeComponentMenu("Post-processing/toshi/LensFilters/Halation")]
     public sealed class Halation : CreativeFxBase
     {
         public ClampedFloatParameter threshold = new ClampedFloatParameter(0.45f, 0, 4);

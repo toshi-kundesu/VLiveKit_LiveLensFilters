@@ -1,10 +1,10 @@
-using UnityEngine;
+﻿using UnityEngine;
 using UnityEngine.Rendering;
 using SerializableAttribute = System.SerializableAttribute;
 
 namespace VLiveKit.LiveLensFilters.PostProcessing
 {
-    [Serializable, VolumeComponentMenu("Post-processing/VLiveKit/Scan Roll Glitch")]
+    [Serializable, VolumeComponentMenu("Post-processing/toshi/LensFilters/Scan Roll Glitch")]
     public sealed class ScanRollGlitch : CreativeFxBase
     {
         public ClampedFloatParameter speed = new ClampedFloatParameter(0.4f, 0, 1);

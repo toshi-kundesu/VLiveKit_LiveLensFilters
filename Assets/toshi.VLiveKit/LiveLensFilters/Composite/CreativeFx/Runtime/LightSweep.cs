@@ -1,10 +1,10 @@
-using UnityEngine;
+﻿using UnityEngine;
 using UnityEngine.Rendering;
 using SerializableAttribute = System.SerializableAttribute;
 
 namespace VLiveKit.LiveLensFilters.PostProcessing
 {
-    [Serializable, VolumeComponentMenu("Post-processing/VLiveKit/Light Sweep")]
+    [Serializable, VolumeComponentMenu("Post-processing/toshi/LensFilters/Light Sweep")]
     public sealed class LightSweep : CreativeFxBase
     {
         public ClampedFloatParameter position = new ClampedFloatParameter(0.5f, 0, 1);
