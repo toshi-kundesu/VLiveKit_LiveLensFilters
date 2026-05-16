@@ -8,12 +8,39 @@ using UnityEngine.Rendering.RendererUtils;
 [System.Serializable]
 public sealed class MaskOffsetRimLight : CustomPass
 {
+    public enum MaskSource
+    {
+        OriginalMaterial,
+        OverrideMaterial
+    }
+
+    public enum RimPlacement
+    {
+        Inside,
+        Outside,
+        Both
+    }
+
+    public enum OffsetSource
+    {
+        Manual,
+        DirectionalLight
+    }
+
     [Header("Target")]
     public LayerMask targetLayer = 1;
     public bool useCameraDepth = true;
 
+    [Header("Mask")]
+    public MaskSource maskSource = MaskSource.OriginalMaterial;
+    public RimPlacement rimPlacement = RimPlacement.Inside;
+
     [Header("Rim")]
+    public OffsetSource offsetSource = OffsetSource.Manual;
     public Vector2 offsetPixels = new Vector2(8f, 0f);
+    public Light sourceDirectionalLight;
+    [Min(0f)] public float directionalLightOffsetPixels = 8f;
+    public bool invertDirectionalLight = true;
     [Min(0f)] public float intensity = 1f;
     [ColorUsage(false, true)] public Color color = Color.white;
 
@@ -39,6 +66,7 @@ public sealed class MaskOffsetRimLight : CustomPass
     static readonly int MaskScaleBiasId = Shader.PropertyToID("_MaskScaleBias");
     static readonly int OffsetPixelsId = Shader.PropertyToID("_OffsetPixels");
     static readonly int IntensityId = Shader.PropertyToID("_Intensity");
+    static readonly int RimPlacementId = Shader.PropertyToID("_RimPlacement");
     static readonly int ColorId = Shader.PropertyToID("_Color");
     static readonly int DebugModeId = Shader.PropertyToID("_DebugMode");
 
@@ -93,13 +121,17 @@ public sealed class MaskOffsetRimLight : CustomPass
             sortingCriteria = SortingCriteria.CommonTransparent,
             excludeObjectMotionVectors = false,
             layerMask = targetLayer,
-            overrideMaterial = rimMaterial,
-            overrideMaterialPassIndex = maskPass,
             stateBlock = new RenderStateBlock(RenderStateMask.Depth)
             {
                 depthState = new DepthState(false, depthCompare)
             },
         };
+
+        if (maskSource == MaskSource.OverrideMaterial)
+        {
+            rendererList.overrideMaterial = rimMaterial;
+            rendererList.overrideMaterialPassIndex = maskPass;
+        }
 
         CoreUtils.DrawRendererList(ctx.cmd, ctx.renderContext.CreateRendererList(rendererList));
         CoreUtils.SetRenderTarget(ctx.cmd, previousColor, previousDepth);
@@ -113,13 +145,39 @@ public sealed class MaskOffsetRimLight : CustomPass
         propertyBlock.SetTexture(MaskTextureId, maskTexture.rt);
         propertyBlock.SetVector(MaskTexelSizeId, GetTexelSize(maskTexture));
         propertyBlock.SetVector(MaskScaleBiasId, GetScaleBias(maskTexture));
-        propertyBlock.SetVector(OffsetPixelsId, offsetPixels);
+        propertyBlock.SetVector(OffsetPixelsId, GetEffectiveOffsetPixels(ctx));
         propertyBlock.SetFloat(IntensityId, intensity);
+        propertyBlock.SetInt(RimPlacementId, (int)rimPlacement);
         propertyBlock.SetColor(ColorId, color);
         propertyBlock.SetFloat(DebugModeId, showMaskOnly ? 1f : showRimOnly ? 2f : 0f);
 
         HDUtils.DrawFullScreen(ctx.cmd, rimMaterial, compositeTexture, propertyBlock, compositePass);
         Blitter.BlitCameraTexture(ctx.cmd, compositeTexture, ctx.cameraColorBuffer);
+    }
+
+    Vector2 GetEffectiveOffsetPixels(CustomPassContext ctx)
+    {
+        if (offsetSource != OffsetSource.DirectionalLight)
+            return offsetPixels;
+
+        var light = sourceDirectionalLight != null ? sourceDirectionalLight : RenderSettings.sun;
+        if (light == null || light.type != LightType.Directional || ctx.hdCamera == null || ctx.hdCamera.camera == null)
+            return offsetPixels;
+
+        var camera = ctx.hdCamera.camera;
+        var lightDirection = light.transform.forward;
+        if (invertDirectionalLight)
+            lightDirection = -lightDirection;
+
+        var center = camera.transform.position + camera.transform.forward * Mathf.Max(1f, camera.nearClipPlane + 1f);
+        var centerViewport = camera.WorldToViewportPoint(center);
+        var offsetViewport = camera.WorldToViewportPoint(center + lightDirection.normalized);
+        var screenDirection = new Vector2(offsetViewport.x - centerViewport.x, offsetViewport.y - centerViewport.y);
+
+        if (screenDirection.sqrMagnitude < 1e-6f)
+            return Vector2.zero;
+
+        return screenDirection.normalized * directionalLightOffsetPixels;
     }
 
     void SyncRenderTextures(CustomPassContext ctx)
@@ -134,7 +192,7 @@ public sealed class MaskOffsetRimLight : CustomPass
             maskHeight = Mathf.Max(1, ctx.cameraDepthBuffer.rt.height);
         }
 
-        maskTexture = EnsureRTHandle(maskTexture, "VLiveKit Mask Offset Rim Mask", maskWidth, maskHeight, GraphicsFormat.R8_UNorm);
+        maskTexture = EnsureRTHandle(maskTexture, "VLiveKit Mask Offset Rim Mask", maskWidth, maskHeight, GraphicsFormat.R8G8B8A8_UNorm);
         compositeTexture = EnsureRTHandle(compositeTexture, "VLiveKit Mask Offset Rim Composite", colorSize.x, colorSize.y, GraphicsFormat.R16G16B16A16_SFloat);
     }
 

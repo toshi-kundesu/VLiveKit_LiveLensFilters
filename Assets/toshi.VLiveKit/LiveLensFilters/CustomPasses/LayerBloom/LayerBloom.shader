@@ -43,6 +43,10 @@ Shader "Hidden/toshi/LensFilters/CustomPass/LayerBloom"
     float _BlurRadius;
     float _Intensity;
     int _ColorMode;
+    int _CompositeMode;
+    float _NormalizeSourceBrightness;
+    float _NormalizedSourceBrightness;
+    float _NormalizationFloor;
     float _MaxSourceBrightness;
     float _MaxBloomBrightness;
     float4 _Tint;
@@ -67,9 +71,22 @@ Shader "Hidden/toshi/LensFilters/CustomPass/LayerBloom"
         return color;
     }
 
+    float3 NormalizeBrightness(float3 color)
+    {
+        if (_NormalizeSourceBrightness < 0.5)
+            return color;
+
+        float brightness = max(color.r, max(color.g, color.b));
+        float floorValue = max(_NormalizationFloor, 1e-5);
+        float gate = smoothstep(floorValue, floorValue * 2.0, brightness);
+        float3 normalized = color * (_NormalizedSourceBrightness / max(brightness, 1e-5));
+        return lerp(color, normalized, gate);
+    }
+
     float3 PrefilterColor(float3 color)
     {
         color = max(color, 0.0);
+        color = NormalizeBrightness(color);
         color *= _SourceBoost;
         color = ClampBrightness(color, _MaxSourceBrightness);
 
@@ -85,6 +102,35 @@ Shader "Hidden/toshi/LensFilters/CustomPass/LayerBloom"
     float Luma(float3 color)
     {
         return dot(color, float3(0.2126, 0.7152, 0.0722));
+    }
+
+    float3 ScreenBlend(float3 baseColor, float3 blendColor)
+    {
+        float3 screen = 1.0 - (1.0 - saturate(baseColor)) * (1.0 - saturate(blendColor));
+        return max(baseColor, screen);
+    }
+
+    float3 OverlayBlend(float3 baseColor, float3 blendColor)
+    {
+        float3 base01 = saturate(baseColor);
+        float3 blend01 = saturate(blendColor);
+        float3 low = 2.0 * base01 * blend01;
+        float3 high = 1.0 - 2.0 * (1.0 - base01) * (1.0 - blend01);
+        return max(baseColor, lerp(low, high, step(0.5, base01)));
+    }
+
+    float3 CompositeBloom(float3 baseColor, float3 bloom)
+    {
+        if (_CompositeMode == 1)
+            return ScreenBlend(baseColor, bloom);
+        if (_CompositeMode == 2)
+            return max(baseColor, bloom);
+        if (_CompositeMode == 3)
+            return baseColor + bloom * (1.0 - saturate(baseColor));
+        if (_CompositeMode == 4)
+            return OverlayBlend(baseColor, bloom);
+
+        return baseColor + bloom;
     }
 
     float2 MainTexUv(float2 uv)
@@ -145,7 +191,7 @@ Shader "Hidden/toshi/LensFilters/CustomPass/LayerBloom"
         UNITY_SETUP_STEREO_EYE_INDEX_POST_VERTEX(input);
 
         float4 cameraColor = SAMPLE_TEXTURE2D_X(_MainTex, s_linear_clamp_sampler, MainTexUv(input.texcoord));
-        cameraColor.rgb += SampleBloom(input.texcoord);
+        cameraColor.rgb = CompositeBloom(cameraColor.rgb, SampleBloom(input.texcoord));
         return cameraColor;
     }
 

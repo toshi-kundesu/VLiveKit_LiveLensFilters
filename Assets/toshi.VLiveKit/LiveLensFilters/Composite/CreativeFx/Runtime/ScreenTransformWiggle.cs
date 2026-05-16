@@ -10,7 +10,7 @@ namespace VLiveKit.LiveLensFilters.PostProcessing
     {
         [SerializeField] Volume volume;
         [SerializeField] bool createEffectIfMissing = true;
-        [SerializeField, Min(0f)] float frequency = 2f;
+        [Min(0f)] public float frequency = 2f;
         [SerializeField] int seed = 1138;
         [SerializeField, Range(0f, 1f)] float intensity = 1f;
         [SerializeField] Vector2 baseOffset = Vector2.zero;
@@ -20,7 +20,7 @@ namespace VLiveKit.LiveLensFilters.PostProcessing
         [SerializeField] float baseRotation;
         [SerializeField, Min(0f)] float rotationAmplitude = 0.35f;
         [SerializeField] Vector2 pivot = new Vector2(0.5f, 0.5f);
-        [SerializeField] bool animateInEditMode = true;
+        [SerializeField] bool animateInEditMode;
         [SerializeField] bool useUnscaledTime = true;
 
         VolumeProfile activeProfile;

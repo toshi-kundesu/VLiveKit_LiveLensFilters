@@ -429,6 +429,132 @@ Shader "Hidden/toshi/LensFilters/CreativeFx"
         return lerp(src, c, saturate(bar + _Intensity * 0.15));
     }
 
+    // Reference-style rain layer math based on Heartfelt by Martijn Steinrucken
+    // and yumayanagisawa/Unity-Raindrops. The repository has an MIT LICENSE,
+    // while its README and shader header identify the Heartfelt source as CC BY-NC-SA 3.0.
+    float3 RainN13(float p)
+    {
+        float3 p3 = frac(float3(p, p, p) * float3(0.1031, 0.11369, 0.13787));
+        p3 += dot(p3, p3.yzx + 19.19);
+        return frac(float3((p3.x + p3.y) * p3.z, (p3.x + p3.z) * p3.y, (p3.y + p3.z) * p3.x));
+    }
+
+    float RainN(float t)
+    {
+        return frac(sin(t * 12345.564) * 7658.76);
+    }
+
+    float RainSaw(float b, float t)
+    {
+        return smoothstep(0.0, b, t) * smoothstep(1.0, b, t);
+    }
+
+    float2 RainDropLayer(float2 uv, float t)
+    {
+        float2 originalUV = uv;
+        uv.y += t * 0.75;
+
+        float2 aspect = float2(6.0, 1.0);
+        float2 grid = aspect * 2.0;
+        float2 id = floor(uv * grid);
+        float colShift = RainN(id.x);
+        uv.y += colShift;
+        id = floor(uv * grid);
+
+        float3 n = RainN13(id.x * 35.2 + id.y * 2376.1);
+        float2 st = frac(uv * grid) - float2(0.5, 0.0);
+
+        float x = n.x - 0.5;
+        float y = originalUV.y * 20.0;
+        float wiggle = sin(y + sin(y));
+        x += wiggle * (0.5 - abs(x)) * (n.z - 0.5);
+        x *= 0.7;
+
+        float ti = frac(t + n.z);
+        y = (RainSaw(0.85, ti) - 0.5) * 0.9 + 0.5;
+
+        float2 p = float2(x, y);
+        float d = length((st - p) * aspect.yx);
+        float mainDrop = smoothstep(0.4, 0.0, d);
+
+        float r = sqrt(smoothstep(1.0, y, st.y));
+        float cd = abs(st.x - x);
+        float trail = smoothstep(0.23 * r, 0.15 * r * r, cd);
+        float trailFront = smoothstep(-0.02, 0.02, st.y - y);
+        trail *= trailFront * r * r;
+
+        y = originalUV.y;
+        float trail2 = smoothstep(0.2 * r, 0.0, cd);
+        float droplets = max(0.0, (sin(y * (1.0 - y) * 120.0) - st.y)) * trail2 * trailFront * n.z;
+        y = frac(y * 10.0) + (st.y - 0.5);
+        float dd = length(st - float2(x, y));
+        droplets = smoothstep(0.3, 0.0, dd);
+
+        float mask = mainDrop + droplets * r * trailFront;
+        return float2(mask, trail);
+    }
+
+    float RainStaticDrops(float2 uv, float t)
+    {
+        uv *= 40.0;
+        float2 id = floor(uv);
+        uv = frac(uv) - 0.5;
+
+        float3 n = RainN13(id.x * 107.45 + id.y * 3543.654);
+        float2 p = (n.xy - 0.5) * 0.7;
+        float d = length(uv - p);
+        float fade = RainSaw(0.025, frac(t + n.z));
+        return smoothstep(0.3, 0.0, d) * frac(n.z * 10.0) * fade;
+    }
+
+    float2 RainDrops(float2 uv, float t, float staticWeight, float layer1Weight, float layer2Weight)
+    {
+        float still = RainStaticDrops(uv, t) * staticWeight;
+        float2 layer1 = RainDropLayer(uv, t) * layer1Weight;
+        float2 layer2 = RainDropLayer(uv * 1.85, t) * layer2Weight;
+        float coverage = smoothstep(0.3, 1.0, still + layer1.x + layer2.x);
+        return float2(coverage, max(layer1.y * staticWeight, layer2.y * layer1Weight));
+    }
+
+    float3 RainOnLensReference(float2 uv, float3 src)
+    {
+        float rainAmount = saturate(_Amount);
+        float time = _TimeValue * lerp(0.05, 1.15, _Far);
+        float2 rainUV = ((uv * _ScreenSize.xy) - 0.5 * _ScreenSize.xy) / max(1.0, _ScreenSize.y);
+        rainUV *= lerp(2.35, 1.05, _Radius);
+
+        float staticDrops = smoothstep(-0.5, 1.0, rainAmount) * 2.0;
+        float layer1 = smoothstep(0.25, 0.75, rainAmount);
+        float layer2 = smoothstep(0.0, 0.5, rainAmount);
+
+        float2 drops = RainDrops(rainUV, time, staticDrops, layer1, layer2);
+        float2 gradientStep = float2(lerp(0.0006, 0.0025, _Threshold), 0.0);
+        float dx = RainDrops(rainUV + gradientStep, time, staticDrops, layer1, layer2).x;
+        float dy = RainDrops(rainUV + gradientStep.yx, time, staticDrops, layer1, layer2).x;
+        float2 normal = float2(dx - drops.x, dy - drops.x);
+
+        float refraction = lerp(0.004, 0.08, _Threshold) * _Intensity;
+        float2 refractUV = uv + normal * refraction;
+
+        float maxBlur = lerp(3.0, 6.0, rainAmount);
+        float minBlur = lerp(1.0, 3.25, _Radius);
+        float focus = lerp(maxBlur - drops.y, minBlur, smoothstep(0.1, 0.2, drops.x));
+        float3 sharp = SampleInput(refractUV).rgb;
+        float3 blurred = SoftBlur(refractUV, max(0.0, focus));
+        float3 color = lerp(blurred, sharp, smoothstep(0.1, 0.2, drops.x));
+
+        float tintAmount = saturate(_Color.a) * saturate(drops.x + rainAmount * 0.2);
+        color = lerp(color, color * _Color.rgb, tintAmount);
+
+        // Keep highlight local to droplets. The reference lightning flash changes whole-frame
+        // exposure over time, which makes downstream bloom pulse even when the scene is static.
+        float2 vignetteUV = uv - 0.5;
+        color *= lerp(1.0, saturate(1.0 - dot(vignetteUV, vignetteUV)), saturate(_Near * 0.35));
+
+        float3 shine = _Color.rgb * (drops.x * 0.18 + drops.y * 0.08) * _Near * _Intensity;
+        return lerp(src, color + shine, saturate(rainAmount * _Intensity));
+    }
+
     float3 WaterDroplets(float2 uv, float3 src)
     {
         float aspect = _ScreenSize.x / _ScreenSize.y;
@@ -782,6 +908,7 @@ Shader "Hidden/toshi/LensFilters/CreativeFx"
         else if (_Mode == 26) outColor = VLiveDOF(input.texcoord, src);
         else if (_Mode == 27) outColor = ShapedBokeh(input.texcoord, src);
         else if (_Mode == 28) outColor = ScreenTransform(input.texcoord, src);
+        else if (_Mode == 29) outColor = RainOnLensReference(input.texcoord, src);
 
         return float4(outColor, src4.a);
     }

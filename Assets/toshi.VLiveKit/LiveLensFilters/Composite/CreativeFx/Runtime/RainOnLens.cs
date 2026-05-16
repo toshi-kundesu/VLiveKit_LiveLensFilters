@@ -14,7 +14,7 @@ namespace VLiveKit.LiveLensFilters.PostProcessing
         public ClampedFloatParameter fallSpeed = new ClampedFloatParameter(0.35f, 0f, 1f);
         public ColorParameter tint = new ColorParameter(new Color(0.86f, 0.95f, 1f, 0.24f), false, true, true);
 
-        protected override int Mode => 21;
+        protected override int Mode => 29;
 
         protected override void SetParameters(Material mat)
         {

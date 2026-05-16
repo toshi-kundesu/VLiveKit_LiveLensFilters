@@ -8,6 +8,13 @@ using UnityEngine.Rendering.RendererUtils;
 [System.Serializable]
 public sealed class LayerBloom : CustomPass
 {
+    public enum BloomTargetMode
+    {
+        Layer,
+        Material,
+        LayerAndMaterial
+    }
+
     public enum BloomColorMode
     {
         SourceColor,
@@ -15,8 +22,22 @@ public sealed class LayerBloom : CustomPass
         SourceColorTinted
     }
 
+    public enum BloomCompositeMode
+    {
+        Additive,
+        Screen,
+        Lighten,
+        SoftAdd,
+        Overlay
+    }
+
     [Header("Target")]
+    public BloomTargetMode targetMode = BloomTargetMode.Layer;
     public LayerMask targetLayer = 1;
+    public Material targetMaterial;
+    [Tooltip("Also match runtime material instances or clones with the same shader and base material name.")]
+    public bool matchMaterialInstances = true;
+    public Material[] targetMaterials = new Material[0];
     public bool useCameraDepth = true;
 
     [Header("Bloom")]
@@ -28,9 +49,13 @@ public sealed class LayerBloom : CustomPass
     [Min(0f)] public float blurRadius = 1.25f;
     [Min(0f)] public float intensity = 0.35f;
     public BloomColorMode colorMode = BloomColorMode.SourceColorTinted;
+    public BloomCompositeMode compositeMode = BloomCompositeMode.Additive;
     [ColorUsage(false, true)] public Color tint = Color.white;
 
     [Header("Stability")]
+    public bool normalizeSourceBrightness = true;
+    [Min(0.001f)] public float normalizedSourceBrightness = 1f;
+    [Min(0f)] public float normalizationFloor = 0.03f;
     [Min(0f)] public float maxSourceBrightness = 3f;
     [Min(0f)] public float maxBloomBrightness = 1.25f;
 
@@ -46,6 +71,8 @@ public sealed class LayerBloom : CustomPass
     RTHandle bloomTextureB;
     RTHandle compositeTexture;
     ShaderTagId[] shaderTags;
+    readonly HashSet<Material> targetMaterialSet = new HashSet<Material>();
+    readonly HashSet<string> targetMaterialKeySet = new HashSet<string>();
 
     int prefilterPass;
     int horizontalBlurPass;
@@ -62,10 +89,21 @@ public sealed class LayerBloom : CustomPass
     static readonly int BlurRadiusId = Shader.PropertyToID("_BlurRadius");
     static readonly int IntensityId = Shader.PropertyToID("_Intensity");
     static readonly int ColorModeId = Shader.PropertyToID("_ColorMode");
+    static readonly int CompositeModeId = Shader.PropertyToID("_CompositeMode");
     static readonly int TintId = Shader.PropertyToID("_Tint");
     static readonly int BloomTextureId = Shader.PropertyToID("_BloomTexture");
+    static readonly int NormalizeSourceBrightnessId = Shader.PropertyToID("_NormalizeSourceBrightness");
+    static readonly int NormalizedSourceBrightnessId = Shader.PropertyToID("_NormalizedSourceBrightness");
+    static readonly int NormalizationFloorId = Shader.PropertyToID("_NormalizationFloor");
     static readonly int MaxSourceBrightnessId = Shader.PropertyToID("_MaxSourceBrightness");
     static readonly int MaxBloomBrightnessId = Shader.PropertyToID("_MaxBloomBrightness");
+    static readonly string[] MaterialPassNames =
+    {
+        "ForwardOnly",
+        "Forward",
+        "SRPDefaultUnlit",
+        "FirstPass",
+    };
 
     protected override void Setup(ScriptableRenderContext renderContext, CommandBuffer cmd)
     {
@@ -95,7 +133,7 @@ public sealed class LayerBloom : CustomPass
 
     protected override void Execute(CustomPassContext ctx)
     {
-        if (layerBloomMaterial == null || targetLayer.value == 0)
+        if (layerBloomMaterial == null || !HasValidTarget())
             return;
 
         SyncRenderTextures(ctx);
@@ -114,22 +152,63 @@ public sealed class LayerBloom : CustomPass
         else
             CoreUtils.SetRenderTarget(ctx.cmd, layerColorTexture, ClearFlag.Color, Color.clear);
 
-        var depthCompare = useCameraDepth ? CompareFunction.LessEqual : CompareFunction.Always;
-        var rendererList = new RendererListDesc(shaderTags, ctx.cullingResults, ctx.hdCamera.camera)
+        if (targetMode == BloomTargetMode.Layer)
         {
-            rendererConfiguration = PerObjectData.None,
-            renderQueueRange = RenderQueueRange.all,
-            sortingCriteria = SortingCriteria.CommonTransparent,
-            excludeObjectMotionVectors = false,
-            layerMask = targetLayer,
-            stateBlock = new RenderStateBlock(RenderStateMask.Depth)
+            var depthCompare = useCameraDepth ? CompareFunction.LessEqual : CompareFunction.Always;
+            var rendererList = new RendererListDesc(shaderTags, ctx.cullingResults, ctx.hdCamera.camera)
             {
-                depthState = new DepthState(false, depthCompare)
-            },
-        };
+                rendererConfiguration = PerObjectData.None,
+                renderQueueRange = RenderQueueRange.all,
+                sortingCriteria = SortingCriteria.CommonTransparent,
+                excludeObjectMotionVectors = false,
+                layerMask = targetLayer,
+                stateBlock = new RenderStateBlock(RenderStateMask.Depth)
+                {
+                    depthState = new DepthState(false, depthCompare)
+                },
+            };
 
-        CoreUtils.DrawRendererList(ctx.cmd, ctx.renderContext.CreateRendererList(rendererList));
+            CoreUtils.DrawRendererList(ctx.cmd, ctx.renderContext.CreateRendererList(rendererList));
+        }
+        else
+        {
+            RenderMaterialTargets(ctx);
+        }
+
         CoreUtils.SetRenderTarget(ctx.cmd, previousColor, previousDepth);
+    }
+
+    void RenderMaterialTargets(CustomPassContext ctx)
+    {
+        if (!RebuildTargetMaterialSet())
+            return;
+
+        var camera = ctx.hdCamera.camera;
+        if (camera == null)
+            return;
+
+        var frustumPlanes = GeometryUtility.CalculateFrustumPlanes(camera);
+        var renderers = FindSceneRenderers();
+        foreach (var renderer in renderers)
+        {
+            if (!CanDrawMaterialTarget(renderer, frustumPlanes))
+                continue;
+
+            var materials = renderer.sharedMaterials;
+            var subMeshCount = GetSubMeshCount(renderer, materials.Length);
+            for (var i = 0; i < subMeshCount; i++)
+            {
+                var material = materials[i];
+                if (!IsTargetMaterial(material))
+                    continue;
+
+                var passIndex = FindRenderableMaterialPass(material);
+                if (passIndex < 0)
+                    continue;
+
+                ctx.cmd.DrawRenderer(renderer, material, i, passIndex);
+            }
+        }
     }
 
     void ApplyBloom(CustomPassContext ctx)
@@ -140,7 +219,11 @@ public sealed class LayerBloom : CustomPass
         layerBloomMaterial.SetFloat(BlurRadiusId, blurRadius);
         layerBloomMaterial.SetFloat(IntensityId, intensity);
         layerBloomMaterial.SetInt(ColorModeId, (int)colorMode);
+        layerBloomMaterial.SetInt(CompositeModeId, (int)compositeMode);
         layerBloomMaterial.SetColor(TintId, tint);
+        layerBloomMaterial.SetFloat(NormalizeSourceBrightnessId, normalizeSourceBrightness ? 1f : 0f);
+        layerBloomMaterial.SetFloat(NormalizedSourceBrightnessId, normalizedSourceBrightness);
+        layerBloomMaterial.SetFloat(NormalizationFloorId, normalizationFloor);
         layerBloomMaterial.SetFloat(MaxSourceBrightnessId, maxSourceBrightness);
         layerBloomMaterial.SetFloat(MaxBloomBrightnessId, maxBloomBrightness);
 
@@ -259,6 +342,162 @@ public sealed class LayerBloom : CustomPass
             return new Vector2Int(Mathf.Max(1, texture.rt.width), Mathf.Max(1, texture.rt.height));
 
         return new Vector2Int(1, 1);
+    }
+
+    bool HasValidTarget()
+    {
+        switch (targetMode)
+        {
+            case BloomTargetMode.Material:
+                return HasTargetMaterials();
+            case BloomTargetMode.LayerAndMaterial:
+                return targetLayer.value != 0 && HasTargetMaterials();
+            default:
+                return targetLayer.value != 0;
+        }
+    }
+
+    bool HasTargetMaterials()
+    {
+        if (targetMaterial != null)
+            return true;
+
+        if (targetMaterials == null)
+            return false;
+
+        foreach (var material in targetMaterials)
+        {
+            if (material != null)
+                return true;
+        }
+
+        return false;
+    }
+
+    bool RebuildTargetMaterialSet()
+    {
+        targetMaterialSet.Clear();
+        targetMaterialKeySet.Clear();
+
+        AddTargetMaterial(targetMaterial);
+
+        if (targetMaterials == null)
+            return targetMaterialSet.Count > 0;
+
+        foreach (var material in targetMaterials)
+            AddTargetMaterial(material);
+
+        return targetMaterialSet.Count > 0;
+    }
+
+    void AddTargetMaterial(Material material)
+    {
+        if (material == null)
+            return;
+
+        targetMaterialSet.Add(material);
+
+        if (!matchMaterialInstances)
+            return;
+
+        var key = GetMaterialMatchKey(material);
+        if (!string.IsNullOrEmpty(key))
+            targetMaterialKeySet.Add(key);
+    }
+
+    bool IsTargetMaterial(Material material)
+    {
+        if (material == null)
+            return false;
+
+        if (targetMaterialSet.Contains(material))
+            return true;
+
+        if (!matchMaterialInstances || targetMaterialKeySet.Count == 0)
+            return false;
+
+        return targetMaterialKeySet.Contains(GetMaterialMatchKey(material));
+    }
+
+    bool CanDrawMaterialTarget(Renderer renderer, Plane[] frustumPlanes)
+    {
+        if (renderer == null || !renderer.enabled || !renderer.gameObject.activeInHierarchy || renderer.forceRenderingOff)
+            return false;
+
+        if (targetMode == BloomTargetMode.LayerAndMaterial && !LayerInMask(renderer.gameObject.layer, targetLayer))
+            return false;
+
+        return GeometryUtility.TestPlanesAABB(frustumPlanes, renderer.bounds);
+    }
+
+    static bool LayerInMask(int layer, LayerMask mask)
+    {
+        return (mask.value & (1 << layer)) != 0;
+    }
+
+    static Renderer[] FindSceneRenderers()
+    {
+#if UNITY_2023_1_OR_NEWER
+        return UnityEngine.Object.FindObjectsByType<Renderer>(FindObjectsInactive.Exclude, FindObjectsSortMode.None);
+#else
+#pragma warning disable CS0618
+        return UnityEngine.Object.FindObjectsOfType<Renderer>();
+#pragma warning restore CS0618
+#endif
+    }
+
+    static int GetSubMeshCount(Renderer renderer, int materialCount)
+    {
+        var subMeshCount = materialCount;
+        if (renderer is SkinnedMeshRenderer skinnedMeshRenderer && skinnedMeshRenderer.sharedMesh != null)
+            subMeshCount = skinnedMeshRenderer.sharedMesh.subMeshCount;
+        else if (renderer is MeshRenderer && renderer.TryGetComponent<MeshFilter>(out var meshFilter) && meshFilter.sharedMesh != null)
+            subMeshCount = meshFilter.sharedMesh.subMeshCount;
+
+        return Mathf.Min(materialCount, Mathf.Max(1, subMeshCount));
+    }
+
+    static int FindRenderableMaterialPass(Material material)
+    {
+        foreach (var passName in MaterialPassNames)
+        {
+            var passIndex = material.FindPass(passName);
+            if (passIndex >= 0)
+                return passIndex;
+        }
+
+        return material.passCount > 0 ? 0 : -1;
+    }
+
+    static string GetMaterialMatchKey(Material material)
+    {
+        if (material == null || material.shader == null)
+            return null;
+
+        return material.shader.GetInstanceID() + ":" + NormalizeMaterialName(material.name);
+    }
+
+    static string NormalizeMaterialName(string name)
+    {
+        if (string.IsNullOrEmpty(name))
+            return string.Empty;
+
+        var previous = string.Empty;
+        while (previous != name)
+        {
+            previous = name;
+            name = TrimSuffix(name, " (Instance)");
+            name = TrimSuffix(name, " (Clone)");
+        }
+
+        return name;
+    }
+
+    static string TrimSuffix(string value, string suffix)
+    {
+        return value.EndsWith(suffix, System.StringComparison.Ordinal)
+            ? value.Substring(0, value.Length - suffix.Length)
+            : value;
     }
 
     static void ReleaseRTHandle(ref RTHandle texture)

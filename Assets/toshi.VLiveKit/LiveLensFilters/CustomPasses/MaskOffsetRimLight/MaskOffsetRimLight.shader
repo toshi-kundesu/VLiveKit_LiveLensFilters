@@ -62,6 +62,7 @@ Shader "Hidden/toshi/LensFilters/CustomPass/MaskOffsetRimLight"
     float2 _OffsetPixels;
     float _Intensity;
     float _DebugMode;
+    int _RimPlacement;
     float4 _Color;
 
     float2 CameraUv(float2 uv)
@@ -76,13 +77,13 @@ Shader "Hidden/toshi/LensFilters/CustomPass/MaskOffsetRimLight"
 
     float SampleMask(float2 uv)
     {
-        return SAMPLE_TEXTURE2D_X(_MaskTexture, s_linear_clamp_sampler, uv).r;
+        float4 mask = SAMPLE_TEXTURE2D_X(_MaskTexture, s_linear_clamp_sampler, uv);
+        float luma = max(mask.r, max(mask.g, mask.b));
+        return saturate(max(mask.a, luma));
     }
 
-    float BuildOffsetRim(float2 maskUv)
+    float BuildOutsideRim(float2 maskUv, float2 offsetUv, float original)
     {
-        float2 offsetUv = _OffsetPixels * _MaskTexelSize.xy;
-        float original = SampleMask(maskUv);
         float shifted = 0.0;
 
         shifted = max(shifted, SampleMask(maskUv - offsetUv));
@@ -90,6 +91,33 @@ Shader "Hidden/toshi/LensFilters/CustomPass/MaskOffsetRimLight"
         shifted = max(shifted, SampleMask(maskUv - offsetUv * 0.33));
 
         return saturate(shifted - original);
+    }
+
+    float BuildInsideRim(float2 maskUv, float2 offsetUv, float original)
+    {
+        float shifted = 1.0;
+
+        shifted = min(shifted, SampleMask(maskUv + offsetUv));
+        shifted = min(shifted, SampleMask(maskUv + offsetUv * 0.66));
+        shifted = min(shifted, SampleMask(maskUv + offsetUv * 0.33));
+
+        return saturate(original - shifted);
+    }
+
+    float BuildOffsetRim(float2 maskUv)
+    {
+        float2 offsetUv = _OffsetPixels * _MaskTexelSize.xy;
+        float original = SampleMask(maskUv);
+        float inside = BuildInsideRim(maskUv, offsetUv, original);
+        float outside = BuildOutsideRim(maskUv, offsetUv, original);
+
+        if (_RimPlacement == 1)
+            return outside;
+
+        if (_RimPlacement == 2)
+            return max(inside, outside);
+
+        return inside;
     }
 
     float4 FragmentMask(MeshVaryings input) : SV_Target

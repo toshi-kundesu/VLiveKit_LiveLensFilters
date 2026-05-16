@@ -12,16 +12,16 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: 59b6606ef2548734bb6d11b9d160bc7e, type: 3}
   m_Name: HDRISky
   m_EditorClassIdentifier: Unity.RenderPipelines.HighDefinition.Runtime::UnityEngine.Rendering.HighDefinition.HDRISky
-  active: 1
+  active: 0
   rotation:
     m_OverrideState: 1
-    m_Value: 257
+    m_Value: 246
   skyIntensityMode:
     m_OverrideState: 0
     m_Value: 0
   exposure:
     m_OverrideState: 1
-    m_Value: 10.3
+    m_Value: 8.28
   multiplier:
     m_OverrideState: 0
     m_Value: 1
@@ -35,8 +35,8 @@ MonoBehaviour:
     m_OverrideState: 0
     m_Value: 20000
   updateMode:
-    m_OverrideState: 1
-    m_Value: 2
+    m_OverrideState: 0
+    m_Value: 0
   updatePeriod:
     m_OverrideState: 0
     m_Value: 0
@@ -127,40 +127,6 @@ MonoBehaviour:
   rectLightShadow:
     m_OverrideState: 0
     m_Value: 0
---- !u!114 &-3492387777075352170
-MonoBehaviour:
-  m_ObjectHideFlags: 3
-  m_CorrespondingSourceObject: {fileID: 0}
-  m_PrefabInstance: {fileID: 0}
-  m_PrefabAsset: {fileID: 0}
-  m_GameObject: {fileID: 0}
-  m_Enabled: 1
-  m_EditorHideFlags: 0
-  m_Script: {fileID: 11500000, guid: 9c7430a6e9ad4c8bb9a82dbd2ec047b7, type: 3}
-  m_Name: RainOnLens
-  m_EditorClassIdentifier: VLiveKit.LiveLensFilters.CreativeFx::VLiveKit.LiveLensFilters.PostProcessing.RainOnLens
-  active: 0
-  intensity:
-    m_OverrideState: 1
-    m_Value: 0.821
-  rainAmount:
-    m_OverrideState: 1
-    m_Value: 0.421
-  dropletSize:
-    m_OverrideState: 1
-    m_Value: 0.01
-  refraction:
-    m_OverrideState: 1
-    m_Value: 1
-  highlight:
-    m_OverrideState: 1
-    m_Value: 1
-  fallSpeed:
-    m_OverrideState: 0
-    m_Value: 0.35
-  tint:
-    m_OverrideState: 0
-    m_Value: {r: 0.86, g: 0.95, b: 1, a: 0.24}
 --- !u!114 &-3213416849690855542
 MonoBehaviour:
   m_ObjectHideFlags: 3
@@ -205,7 +171,7 @@ MonoBehaviour:
   fogType:
     m_OverrideState: 0
     m_Value: 0
---- !u!114 &-1701395944722917364
+--- !u!114 &-2109919283512037343
 MonoBehaviour:
   m_ObjectHideFlags: 3
   m_CorrespondingSourceObject: {fileID: 0}
@@ -214,43 +180,25 @@ MonoBehaviour:
   m_GameObject: {fileID: 0}
   m_Enabled: 1
   m_EditorHideFlags: 0
-  m_Script: {fileID: 11500000, guid: dfe69384b26685a4da75d2a33eaa11c0, type: 3}
-  m_Name: GenshinBloom
-  m_EditorClassIdentifier: VLiveKit.LiveLensFilters.CreativeFx::VLiveKit.LiveLensFilters.PostProcessing.GenshinBloom
-  active: 0
-  stretch:
-    m_OverrideState: 0
-    m_Value: 0.75
-  tint:
-    m_OverrideState: 0
-    m_Value: {r: 0.55, g: 0.55, b: 1, a: 1}
-  threshold:
-    m_OverrideState: 0
-    m_Value: 0.82
-  blurRadius:
-    m_OverrideState: 0
-    m_Value: 2
+  m_Script: {fileID: 11500000, guid: b98a50bf342143058d0c013c297d72b0, type: 3}
+  m_Name: ScreenTransform
+  m_EditorClassIdentifier: VLiveKit.LiveLensFilters.CreativeFx::VLiveKit.LiveLensFilters.PostProcessing.ScreenTransform
+  active: 1
   intensity:
     m_OverrideState: 0
-    m_Value: 0.35
-  weights:
-    m_OverrideState: 0
-    m_Value: {x: 0.1, y: 0.2, z: 0.3, w: 0.4}
-  exposure:
-    m_OverrideState: 0
-    m_Value: 1
-  contrast:
-    m_OverrideState: 0
-    m_Value: 1
-  saturation:
-    m_OverrideState: 0
-    m_Value: 1
-  bloomIntensity:
-    m_OverrideState: 1
     m_Value: 0
-  bloomColor:
+  offset:
+    m_OverrideState: 1
+    m_Value: {x: 0, y: 0}
+  zoom:
     m_OverrideState: 0
-    m_Value: {r: 0.55, g: 0.55, b: 1, a: 1}
+    m_Value: 1
+  rotation:
+    m_OverrideState: 0
+    m_Value: 0
+  pivot:
+    m_OverrideState: 0
+    m_Value: {x: 0.5, y: 0.5}
 --- !u!114 &11400000
 MonoBehaviour:
   m_ObjectHideFlags: 0
@@ -261,17 +209,14 @@ MonoBehaviour:
   m_Enabled: 1
   m_EditorHideFlags: 0
   m_Script: {fileID: 11500000, guid: d7fd9488000d3734a9e00ee676215985, type: 3}
-  m_Name: Chromatic Aberration Plus Volume Profile
+  m_Name: wiggle
   m_EditorClassIdentifier: 
   components:
   - {fileID: 11400001}
   - {fileID: -4432225628693369188}
   - {fileID: -3213416849690855542}
   - {fileID: 6566570996205942872}
-  - {fileID: -3492387777075352170}
-  - {fileID: 1378606360344821902}
-  - {fileID: 90694768836046286}
-  - {fileID: -1701395944722917364}
+  - {fileID: -2109919283512037343}
 --- !u!114 &11400001
 MonoBehaviour:
   m_ObjectHideFlags: 3
@@ -284,7 +229,7 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: bb85e3f3b6ef4d7cb2258773be764238, type: 3}
   m_Name: Chromatic Aberration Plus
   m_EditorClassIdentifier: 
-  active: 1
+  active: 0
   intensity:
     m_OverrideState: 1
     m_Value: 0.084
@@ -294,86 +239,6 @@ MonoBehaviour:
   edgeBias:
     m_OverrideState: 1
     m_Value: 1.1
---- !u!114 &90694768836046286
-MonoBehaviour:
-  m_ObjectHideFlags: 3
-  m_CorrespondingSourceObject: {fileID: 0}
-  m_PrefabInstance: {fileID: 0}
-  m_PrefabAsset: {fileID: 0}
-  m_GameObject: {fileID: 0}
-  m_Enabled: 1
-  m_EditorHideFlags: 0
-  m_Script: {fileID: 11500000, guid: 45f29e23613d47879485230b536c4985, type: 3}
-  m_Name: CinemaScope
-  m_EditorClassIdentifier: VLiveKit.LiveLensFilters.CreativeFx::VLiveKit.LiveLensFilters.PostProcessing.CinemaScope
-  active: 1
-  intensity:
-    m_OverrideState: 1
-    m_Value: 0
-  aspect:
-    m_OverrideState: 0
-    m_Value: 0.6
-  extraCrop:
-    m_OverrideState: 0
-    m_Value: 0
-  softness:
-    m_OverrideState: 0
-    m_Value: 0.08
-  matteColor:
-    m_OverrideState: 0
-    m_Value: {r: 0, g: 0, b: 0, a: 1}
-  centerGrade:
-    m_OverrideState: 0
-    m_Value: {r: 1, g: 0.96, b: 0.9, a: 0}
-  centerGradeAmount:
-    m_OverrideState: 0
-    m_Value: 0
---- !u!114 &1378606360344821902
-MonoBehaviour:
-  m_ObjectHideFlags: 3
-  m_CorrespondingSourceObject: {fileID: 0}
-  m_PrefabInstance: {fileID: 0}
-  m_PrefabAsset: {fileID: 0}
-  m_GameObject: {fileID: 0}
-  m_Enabled: 1
-  m_EditorHideFlags: 0
-  m_Script: {fileID: 11500000, guid: 24f077503be6ae942a1e1245dbd53ea9, type: 3}
-  m_Name: Bloom
-  m_EditorClassIdentifier: Unity.RenderPipelines.HighDefinition.Runtime::UnityEngine.Rendering.HighDefinition.Bloom
-  active: 0
-  quality:
-    m_OverrideState: 0
-    m_Value: 1
-  threshold:
-    m_OverrideState: 1
-    m_Value: 0
-  intensity:
-    m_OverrideState: 1
-    m_Value: 0
-  scatter:
-    m_OverrideState: 1
-    m_Value: 0.54
-  tint:
-    m_OverrideState: 0
-    m_Value: {r: 1, g: 1, b: 1, a: 1}
-  dirtTexture:
-    m_OverrideState: 1
-    m_Value: {fileID: 2800000, guid: 86d94b15425411c44890f6df5ebe2c36, type: 3}
-  dirtIntensity:
-    m_OverrideState: 1
-    m_Value: 10.33
-  anamorphic:
-    m_OverrideState: 0
-    m_Value: 1
-  m_Resolution:
-    m_OverrideState: 0
-    m_Value: 2
-  m_HighQualityPrefiltering:
-    m_OverrideState: 0
-    m_Value: 0
-  m_HighQualityFiltering:
-    m_OverrideState: 0
-    m_Value: 1
 --- !u!114 &6566570996205942872
 MonoBehaviour:
   m_ObjectHideFlags: 3
@@ -386,16 +251,16 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: a5f019255bcd1cb489b193b5e8443a27, type: 3}
   m_Name: Streak
   m_EditorClassIdentifier: Kino.Postprocessing::Kino.PostProcessing.Streak
-  active: 1
+  active: 0
   threshold:
     m_OverrideState: 1
-    m_Value: 0.89
+    m_Value: 0.85
   stretch:
-    m_OverrideState: 1
-    m_Value: 0.417
+    m_OverrideState: 0
+    m_Value: 0.75
   intensity:
     m_OverrideState: 1
-    m_Value: 0.891
+    m_Value: 0.573
   tint:
     m_OverrideState: 1
     m_Value: {r: 0.2830189, g: 0.16479892, b: 0.1535244, a: 1}

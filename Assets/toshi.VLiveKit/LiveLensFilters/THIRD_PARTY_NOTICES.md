@@ -40,3 +40,16 @@ This package includes code derived from `keijiro/Kino`.
 
 - Repository: https://github.com/keijiro/Kino
 - License: Unlicense
+
+## Heartfelt / yumayanagisawa Unity-Raindrops Reference
+
+The `Rain On Lens` CreativeFx shader includes a reference-style adaptation of rain-drop layer math from the Heartfelt Shadertoy shader and the `yumayanagisawa/Unity-Raindrops` conversion.
+
+- Heartfelt: https://www.shadertoy.com/view/ltffzl
+- Original author: Martijn Steinrucken aka BigWings
+- Unity-Raindrops reference: https://github.com/yumayanagisawa/Unity-Raindrops
+- Repository license file: MIT License, Copyright (c) 2017 Yuma Yanagisawa
+- Shader/README source note: Creative Commons Attribution-NonCommercial-ShareAlike 3.0 Unported
+- Creative Commons license URL: https://creativecommons.org/licenses/by-nc-sa/3.0/
+
+This section is intentionally explicit because the repository-level MIT license and the shader-level Heartfelt source note are not the same license statement.

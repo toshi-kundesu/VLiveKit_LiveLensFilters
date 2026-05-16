@@ -85,4 +85,4 @@ It uses the VLiveKit `CreativeFx` water-droplet mode to add animated rain beads,
 - `Fall Speed`: downward animation speed.
 - `Tint`: subtle color and alpha for the water layer.
 
-The original `sixwaytest/Assets/RaindropShader` reference is a Heartfelt-derived shader marked `CC BY-NC-SA 3.0`, so VLiveKit keeps this package on its own CreativeFx implementation instead of copying that source shader into the public package.
+`Rain On Lens` currently follows the Heartfelt / `yumayanagisawa/Unity-Raindrops` reference structure closely so the look can be compared against the original raindrop shader. The repository has an MIT license file, while its README and shader header also identify the Heartfelt source as `CC BY-NC-SA 3.0`; see `Assets/toshi.VLiveKit/LiveLensFilters/THIRD_PARTY_NOTICES.md` before including this implementation in a public package or release.

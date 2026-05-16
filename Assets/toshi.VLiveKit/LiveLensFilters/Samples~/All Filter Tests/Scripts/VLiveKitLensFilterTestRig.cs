@@ -221,6 +221,7 @@ public sealed class VLiveKitLensFilterTestRig : MonoBehaviour
         customPassVolume.customPasses.Add(new LayerBloom
         {
             enabled = true,
+            targetMode = LayerBloom.BloomTargetMode.Layer,
             targetLayer = 1 << layerBloomLayer,
             useCameraDepth = true,
             threshold = 0.04f,
@@ -231,7 +232,11 @@ public sealed class VLiveKitLensFilterTestRig : MonoBehaviour
             blurRadius = 2.2f,
             intensity = 1.3f,
             colorMode = LayerBloom.BloomColorMode.SourceColor,
+            compositeMode = LayerBloom.BloomCompositeMode.Screen,
             tint = Color.white,
+            normalizeSourceBrightness = true,
+            normalizedSourceBrightness = 1f,
+            normalizationFloor = 0.03f,
             showBloomOnly = showBloomOnly
         });
     }
@@ -435,6 +440,14 @@ public sealed class VLiveKitLensFilterTestRig : MonoBehaviour
                 Override(waterDroplets.highlight, 0.85f);
                 Override(waterDroplets.fallSpeed, 0.35f);
                 break;
+            case LensFilterTestPreset.RainOnLens:
+                var rainOnLens = AddEffect<RainOnLens>();
+                Override(rainOnLens.rainAmount, 0.78f);
+                Override(rainOnLens.dropletSize, 0.48f);
+                Override(rainOnLens.refraction, 0.72f);
+                Override(rainOnLens.highlight, 0.85f);
+                Override(rainOnLens.fallSpeed, 0.4f);
+                break;
             case LensFilterTestPreset.ZoomBlur:
                 var zoomBlur = AddEffect<ZoomBlur>();
                 Override(zoomBlur.amount, 0.55f);
@@ -558,6 +571,7 @@ public enum LensFilterTestPreset
     StarFilter,
     ThreeStripColor,
     VLiveDOF,
+    RainOnLens,
     WaterDroplets,
     ZoomBlur,
     ScreenTransform,

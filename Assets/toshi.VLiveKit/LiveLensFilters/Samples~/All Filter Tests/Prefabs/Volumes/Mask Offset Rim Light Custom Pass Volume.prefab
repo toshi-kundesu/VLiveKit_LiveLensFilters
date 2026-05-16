@@ -69,7 +69,13 @@ MonoBehaviour:
           serializedVersion: 2
           m_Bits: 1073741824
         useCameraDepth: 1
+        maskSource: 0
+        rimPlacement: 0
+        offsetSource: 0
         offsetPixels: {x: 8, y: 0}
+        sourceDirectionalLight: {fileID: 0}
+        directionalLightOffsetPixels: 8
+        invertDirectionalLight: 1
         intensity: 1
         color: {r: 1, g: 1, b: 1, a: 1}
         showMaskOnly: 0
