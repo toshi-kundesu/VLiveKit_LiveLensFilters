@@ -110,6 +110,8 @@ MonoBehaviour:
     PublicKeyToken=null
   - VLiveKit.LiveLensFilters.PostProcessing.WaterDroplets, VLiveKit.LiveLensFilters.CreativeFx, Version=0.0.0.0, Culture=neutral,
     PublicKeyToken=null
+  - VLiveKit.LiveLensFilters.PostProcessing.RainOnLens, VLiveKit.LiveLensFilters.CreativeFx, Version=0.0.0.0,
+    Culture=neutral, PublicKeyToken=null
   - VLiveKit.LiveLensFilters.PostProcessing.CinemaScope, VLiveKit.LiveLensFilters.CreativeFx, Version=0.0.0.0, Culture=neutral,
     PublicKeyToken=null
   - VLiveKit.LiveLensFilters.PostProcessing.LightSweep, VLiveKit.LiveLensFilters.CreativeFx, Version=0.0.0.0, Culture=neutral,
