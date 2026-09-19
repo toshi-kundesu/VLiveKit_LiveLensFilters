@@ -1,0 +1,18 @@
+<linker>
+  <!-- LiveToon creates and configures this optional pass through reflection. -->
+  <assembly fullname="VLiveKit.LiveLensFilters.CustomPasses">
+    <type fullname="LayerLightWrap" preserve="all" />
+  </assembly>
+  <assembly fullname="Unity.RenderPipelines.HighDefinition.Runtime">
+    <type fullname="UnityEngine.Rendering.HighDefinition.CustomPass" preserve="nothing">
+      <field name="enabled" />
+      <property name="name" />
+    </type>
+    <type fullname="UnityEngine.Rendering.HighDefinition.CustomPassVolume" preserve="nothing">
+      <field name="customPasses" />
+      <field name="injectionPoint" />
+      <field name="priority" />
+      <property name="isGlobal" />
+    </type>
+  </assembly>
+</linker>

@@ -10,7 +10,7 @@ public sealed class VLiveKitLensFilterTestRig : MonoBehaviour
     public LensFilterTestPreset selectedPreset = LensFilterTestPreset.Halation;
     public bool autoCycle = true;
     [Min(1f)] public float cycleSeconds = 3f;
-    [Tooltip("GameObject layer assigned to the preview model and its children for Layer Bloom. The stage stays outside this layer.")]
+    [Tooltip("GameObject layer assigned to the preview model and its children for Layer Bloom and Light Wrap. The stage stays outside this layer.")]
     [Range(0, 31)] public int layerBloomLayer = 30;
     public bool showBloomOnly;
     [Tooltip("Optional model asset. A sphere is used when the model is not installed.")]
@@ -27,6 +27,7 @@ public sealed class VLiveKitLensFilterTestRig : MonoBehaviour
     const int PresetCount = (int)LensFilterTestPreset.LayerBloom + 1;
 
     Transform generatedRoot;
+    Transform lightWrapBackground;
     Volume volume;
     CustomPassVolume customPassVolume;
     VolumeProfile runtimeProfile;
@@ -266,7 +267,7 @@ public sealed class VLiveKitLensFilterTestRig : MonoBehaviour
         generatedRoot = CreateObject(GeneratedRootName, transform).transform;
         BuildPreviewObjects();
         volume = CreateObject("Global Volume", generatedRoot).AddComponent<Volume>();
-        customPassVolume = CreateObject("Layer Bloom Custom Pass", generatedRoot).AddComponent<CustomPassVolume>();
+        customPassVolume = CreateObject("Character Effects Custom Pass", generatedRoot).AddComponent<CustomPassVolume>();
         customPassVolume.enabled = false;
         builtPreviewModel = previewModel;
         builtPreviewModelEuler = previewModelEuler;
@@ -289,6 +290,7 @@ public sealed class VLiveKitLensFilterTestRig : MonoBehaviour
         }
 
         generatedRoot = null;
+        lightWrapBackground = null;
         volume = null;
         customPassVolume = null;
         foreach (var material in generatedMaterials)
@@ -362,6 +364,17 @@ public sealed class VLiveKitLensFilterTestRig : MonoBehaviour
                     new Vector3(-2.8f + column * 0.46f, 0.7f + row * 0.46f, 3.8f), Vector3.one * 0.065f, material);
             }
         }
+
+        // Broad background colors make the selected character's light wrap easy to inspect.
+        // This transient set is visible only for the Light Wrap preset.
+        lightWrapBackground = CreateObject("Light Wrap Background", generatedRoot).transform;
+        lightWrapBackground.gameObject.SetActive(false);
+        var wrapWarm = CreateMaterial("Light Wrap Amber Panel", Color.black, 0f, 0f, new Color(720f, 240f, 60f));
+        var wrapCool = CreateMaterial("Light Wrap Blue Panel", Color.black, 0f, 0f, new Color(80f, 280f, 900f));
+        CreatePrimitive("Amber Background Panel", PrimitiveType.Cube, new Vector3(-3.3f, 1.65f, 3.2f),
+            new Vector3(2.35f, 3.4f, 0.08f), wrapWarm, parent: lightWrapBackground);
+        CreatePrimitive("Blue Background Panel", PrimitiveType.Cube, new Vector3(-0.9f, 1.65f, 3.2f),
+            new Vector3(2.35f, 3.4f, 0.08f), wrapCool, parent: lightWrapBackground);
 
         var probeObject = CreateObject("Stage Reflections", generatedRoot);
         probeObject.transform.localPosition = new Vector3(0f, 1.3f, 0.65f);
@@ -453,13 +466,13 @@ public sealed class VLiveKitLensFilterTestRig : MonoBehaviour
         wrapper.localPosition = basePosition - new Vector3(bounds.center.x, bounds.min.y, bounds.center.z) * scale;
     }
 
-    void CreatePrimitive(string objectName, PrimitiveType primitiveType, Vector3 position, Vector3 scale, Material material, int layer = 0)
+    void CreatePrimitive(string objectName, PrimitiveType primitiveType, Vector3 position, Vector3 scale, Material material, int layer = 0, Transform parent = null)
     {
         var gameObject = GameObject.CreatePrimitive(primitiveType);
         gameObject.name = objectName;
         gameObject.hideFlags = RuntimeFlags;
         gameObject.layer = Mathf.Clamp(layer, 0, 31);
-        gameObject.transform.SetParent(generatedRoot, false);
+        gameObject.transform.SetParent(parent != null ? parent : generatedRoot, false);
         gameObject.transform.localPosition = position;
         gameObject.transform.localScale = scale;
         gameObject.GetComponent<Renderer>().sharedMaterial = material;
@@ -539,12 +552,20 @@ public sealed class VLiveKitLensFilterTestRig : MonoBehaviour
         volume.weight = 1f;
         volume.sharedProfile = runtimeProfile;
 
+        if (lightWrapBackground != null)
+            lightWrapBackground.gameObject.SetActive(preset == LensFilterTestPreset.LightWrap);
+
         // Disabling first lets HDRP release resources before replacing a custom pass.
         customPassVolume.enabled = false;
         customPassVolume.customPasses.Clear();
         if (preset == LensFilterTestPreset.LayerBloom)
         {
             ApplyLayerBloom();
+            customPassVolume.enabled = true;
+        }
+        else if (preset == LensFilterTestPreset.LightWrap)
+        {
+            ApplyLayerLightWrap();
             customPassVolume.enabled = true;
         }
         else
@@ -580,6 +601,27 @@ public sealed class VLiveKitLensFilterTestRig : MonoBehaviour
             normalizedSourceBrightness = 1f,
             normalizationFloor = 0.03f,
             showBloomOnly = showBloomOnly
+        });
+    }
+
+    void ApplyLayerLightWrap()
+    {
+        customPassVolume.isGlobal = true;
+        customPassVolume.priority = 0f;
+        customPassVolume.fadeRadius = 0f;
+        customPassVolume.injectionPoint = CustomPassInjectionPoint.BeforePostProcess;
+        customPassVolume.customPasses.Clear();
+        customPassVolume.customPasses.Add(new LayerLightWrap
+        {
+            enabled = true,
+            targetLayer = 1 << layerBloomLayer,
+            width = 32f,
+            softness = 0.6f,
+            intensity = 0.8f,
+            backgroundExposure = 0f,
+            saturation = 1f,
+            tint = Color.white,
+            useCameraDepth = true
         });
     }
 
@@ -729,11 +771,6 @@ public sealed class VLiveKitLensFilterTestRig : MonoBehaviour
                 Override(lightSweep.width, 0.24f);
                 Override(lightSweep.threshold, 0.18f);
                 break;
-            case LensFilterTestPreset.LightWrap:
-                var lightWrap = AddEffect<LightWrap>();
-                Override(lightWrap.threshold, 0.3f);
-                Override(lightWrap.radius, 7.5f);
-                break;
             case LensFilterTestPreset.PixelSort:
                 var pixelSort = AddEffect<PixelSort>();
                 Override(pixelSort.intensity, 1f);
@@ -858,6 +895,8 @@ public sealed class VLiveKitLensFilterTestRig : MonoBehaviour
                 return "Screen Transform";
             case LensFilterTestPreset.LayerBloom:
                 return "Layer Bloom";
+            case LensFilterTestPreset.LightWrap:
+                return "Light Wrap (Character)";
             default:
                 return Nicify(preset.ToString());
         }
