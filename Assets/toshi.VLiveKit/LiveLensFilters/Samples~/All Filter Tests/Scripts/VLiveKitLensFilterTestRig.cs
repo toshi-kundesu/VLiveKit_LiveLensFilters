@@ -10,6 +10,7 @@ public sealed class VLiveKitLensFilterTestRig : MonoBehaviour
     public LensFilterTestPreset selectedPreset = LensFilterTestPreset.Halation;
     public bool autoCycle = true;
     [Min(1f)] public float cycleSeconds = 3f;
+    [Tooltip("GameObject layer assigned to the preview model and its children for Layer Bloom. The stage stays outside this layer.")]
     [Range(0, 31)] public int layerBloomLayer = 30;
     public bool showBloomOnly;
     [Tooltip("Optional model asset. A sphere is used when the model is not installed.")]
@@ -357,8 +358,8 @@ public sealed class VLiveKitLensFilterTestRig : MonoBehaviour
             for (var row = 0; row < 4; row++)
             {
                 var material = (column + row * 2) % 7 == 0 ? warm : (column + row) % 5 == 0 ? cool : dim;
-                CreatePrimitive("Layer Bloom Stage Lamp", PrimitiveType.Sphere,
-                    new Vector3(-2.8f + column * 0.46f, 0.7f + row * 0.46f, 3.8f), Vector3.one * 0.065f, material, layerBloomLayer);
+                CreatePrimitive("Stage Lamp", PrimitiveType.Sphere,
+                    new Vector3(-2.8f + column * 0.46f, 0.7f + row * 0.46f, 3.8f), Vector3.one * 0.065f, material);
             }
         }
 
@@ -398,17 +399,22 @@ public sealed class VLiveKitLensFilterTestRig : MonoBehaviour
     {
         if (previewModel == null)
         {
-            CreatePrimitive("Ceramic Sphere (Optional Model Missing)", PrimitiveType.Sphere, basePosition + Vector3.up * 0.72f, Vector3.one * 1.44f, material);
+            CreatePrimitive("Ceramic Sphere (Optional Model Missing)", PrimitiveType.Sphere, basePosition + Vector3.up * 0.72f, Vector3.one * 1.44f, material, layerBloomLayer);
             return;
         }
 
         var wrapper = CreateObject("Sculpture Test Model", generatedRoot).transform;
+        wrapper.gameObject.layer = layerBloomLayer;
         var model = Instantiate(previewModel, wrapper, false);
         // Apply an optional orientation outside the imported hierarchy, preserving FBX axis conversion.
         var importedRotation = model.transform.localRotation;
         model.transform.localRotation = Quaternion.Euler(previewModelEuler) * importedRotation;
+        // Layer Bloom targets the sculpture, including renderers below the imported model root.
         foreach (var child in model.GetComponentsInChildren<Transform>(true))
+        {
             child.gameObject.hideFlags = RuntimeFlags;
+            child.gameObject.layer = layerBloomLayer;
+        }
 
         var renderers = model.GetComponentsInChildren<Renderer>(true);
         var bounds = new Bounds();
@@ -438,7 +444,7 @@ public sealed class VLiveKitLensFilterTestRig : MonoBehaviour
         if (!hasBounds || bounds.size.sqrMagnitude < 0.000001f)
         {
             DestroyRuntimeObject(wrapper.gameObject);
-            CreatePrimitive("Ceramic Sphere (Model Has No Geometry)", PrimitiveType.Sphere, basePosition + Vector3.up * 0.72f, Vector3.one * 1.44f, material);
+            CreatePrimitive("Ceramic Sphere (Model Has No Geometry)", PrimitiveType.Sphere, basePosition + Vector3.up * 0.72f, Vector3.one * 1.44f, material, layerBloomLayer);
             return;
         }
 
@@ -559,17 +565,18 @@ public sealed class VLiveKitLensFilterTestRig : MonoBehaviour
             targetMode = LayerBloom.BloomTargetMode.Layer,
             targetLayer = 1 << layerBloomLayer,
             useCameraDepth = true,
-            threshold = 0.04f,
+            threshold = 0.08f,
             softKnee = 0.65f,
-            sourceBoost = 2.0f,
+            sourceBoost = 1f,
             downsample = 2,
             blurIterations = 5,
             blurRadius = 2.2f,
-            intensity = 1.3f,
+            intensity = 0.6f,
             colorMode = LayerBloom.BloomColorMode.SourceColor,
             compositeMode = LayerBloom.BloomCompositeMode.Screen,
             tint = Color.white,
-            normalizeSourceBrightness = true,
+            // Keep the lit model's shading instead of lifting its entire silhouette to white.
+            normalizeSourceBrightness = false,
             normalizedSourceBrightness = 1f,
             normalizationFloor = 0.03f,
             showBloomOnly = showBloomOnly

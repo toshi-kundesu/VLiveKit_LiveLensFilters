@@ -11,4 +11,8 @@ The scenes use `VLiveKitLensFilterTestRig` to create a temporary preview stage, 
 
 Before using the CreativeFx scene, make sure the VLiveKit Lens Filters custom post process types are present in HDRP Global Settings Custom Post Process Orders.
 
-In the rig inspector, disable `Auto Cycle` and choose `Selected Preset` when you want to tune a single filter. `Layer Bloom` uses Unity layer 30 for its bloom source objects by default.
+In the rig inspector, disable `Auto Cycle` and choose `Selected Preset` when you want to tune a single filter. `Layer Bloom` assigns Unity GameObject layer 30 to the preview model and all its children (or the fallback sphere). The floor, stage lamps, and material spheres remain outside the bloom target. The rig creates the `Before Post Process` Custom Pass automatically; a layer named `Character` is not required.
+
+For Layer Bloom in another HDRP project, enable Custom Pass support and set Lit Shader Mode to Both on every HDRP Asset used by the project or quality levels. Keep `CustomPasses/LayerBloom/LayerBloom.shader` in Graphics Settings > Always Included Shaders so its runtime shader lookup also works in a player build. The VLiveKit template includes these settings.
+
+`Light Wrap` in CreativeFx processes the whole camera image. `Layer Bloom` and `Mask Offset Rim Light` are the layer-targeted Custom Pass effects.
