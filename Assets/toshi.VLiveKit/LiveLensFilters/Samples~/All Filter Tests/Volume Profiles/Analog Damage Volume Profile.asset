@@ -15,13 +15,13 @@ MonoBehaviour:
   active: 1
   intensity:
     m_OverrideState: 1
-    m_Value: 1
+    m_Value: 0.34
   noise:
     m_OverrideState: 1
-    m_Value: 0.55
+    m_Value: 0.41
   scanlines:
     m_OverrideState: 1
-    m_Value: 0.55
+    m_Value: 0.25
 --- !u!114 &11400000
 MonoBehaviour:
   m_ObjectHideFlags: 0

@@ -18,16 +18,16 @@ MonoBehaviour:
     m_Value: 0.75
   tint:
     m_OverrideState: 1
-    m_Value: {r: 0.55, g: 0.55, b: 1, a: 1}
+    m_Value: {r: 1, g: 0.6, b: 0, a: 1}
   threshold:
     m_OverrideState: 1
-    m_Value: 0.55
+    m_Value: 0.19
   blurRadius:
     m_OverrideState: 1
-    m_Value: 3.5
+    m_Value: 6
   intensity:
     m_OverrideState: 1
-    m_Value: 0.75
+    m_Value: 2.45
   weights:
     m_OverrideState: 1
     m_Value: {x: 0.1, y: 0.2, z: 0.3, w: 0.4}
@@ -45,7 +45,7 @@ MonoBehaviour:
     m_Value: 1.4
   bloomColor:
     m_OverrideState: 1
-    m_Value: {r: 0.62, g: 0.72, b: 1, a: 1}
+    m_Value: {r: 1, g: 1, b: 1, a: 1}
 --- !u!114 &11400000
 MonoBehaviour:
   m_ObjectHideFlags: 0

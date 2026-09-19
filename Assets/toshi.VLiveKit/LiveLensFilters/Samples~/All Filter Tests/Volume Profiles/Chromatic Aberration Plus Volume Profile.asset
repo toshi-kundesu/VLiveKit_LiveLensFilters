@@ -18,10 +18,10 @@ MonoBehaviour:
     m_Value: 1
   amount:
     m_OverrideState: 1
-    m_Value: 0.72
+    m_Value: 0.49
   edgeBias:
     m_OverrideState: 1
-    m_Value: 1.1
+    m_Value: 0.22
 --- !u!114 &11400000
 MonoBehaviour:
   m_ObjectHideFlags: 0

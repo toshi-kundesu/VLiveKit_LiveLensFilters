@@ -1,4 +1,5 @@
 using UnityEngine;
+using UnityEngine.Experimental.Rendering;
 using UnityEngine.Rendering;
 using UnityEngine.Rendering.HighDefinition;
 using SerializableAttribute = System.SerializableAttribute;
@@ -9,18 +10,27 @@ namespace VLiveKit.LiveLensFilters.PostProcessing
     public sealed class GenshinBloom : CustomPostProcessVolumeComponent, IPostProcessComponent
     {
         public ClampedFloatParameter stretch = new ClampedFloatParameter(0.75f, 0f, 1f);
-        public ColorParameter tint = new ColorParameter(new Color(0.55f, 0.55f, 1f), false, false, true);
-        public ClampedFloatParameter threshold = new ClampedFloatParameter(0.82f, 0f, 10f);
-        public ClampedFloatParameter blurRadius = new ClampedFloatParameter(2f, 0.1f, 10f);
-        public ClampedFloatParameter intensity = new ClampedFloatParameter(0.35f, 0f, 5f);
-        public Vector4Parameter weights = new Vector4Parameter(new Vector4(0.1f, 0.2f, 0.3f, 0.4f));
+        public ColorParameter tint = new ColorParameter(new Color(1f, 0.6f, 0f), false, false, true);
+        public ClampedFloatParameter threshold = new ClampedFloatParameter(0.19f, 0f, 10f);
+        public ClampedFloatParameter blurRadius = new ClampedFloatParameter(6f, 0.1f, 10f);
+        public ClampedFloatParameter intensity = new ClampedFloatParameter(0f, 0f, 5f);
+        // Preserve legacy profile data; a normalized Gaussian replaces the sparse kernel.
+        [HideInInspector] public Vector4Parameter weights = new Vector4Parameter(new Vector4(0.1f, 0.2f, 0.3f, 0.4f));
         public ClampedFloatParameter exposure = new ClampedFloatParameter(1f, 0f, 10f);
         public ClampedFloatParameter contrast = new ClampedFloatParameter(1f, 0f, 10f);
         public ClampedFloatParameter saturation = new ClampedFloatParameter(1f, 0f, 10f);
-        public ClampedFloatParameter bloomIntensity = new ClampedFloatParameter(1f, 0f, 10f);
-        public ColorParameter bloomColor = new ColorParameter(new Color(0.55f, 0.55f, 1f), false, false, true);
+        public ClampedFloatParameter bloomIntensity = new ClampedFloatParameter(1.4f, 0f, 10f);
+        public ColorParameter bloomColor = new ColorParameter(Color.white, false, false, true);
+
+        const float ReferenceRenderHeight = 1080f;
+        const int MaxBlurPassCount = 8;
 
         Material material;
+        RTHandle blurTextureA;
+        RTHandle blurTextureB;
+        MaterialPropertyBlock horizontalProperties;
+        MaterialPropertyBlock blurProperties;
+        MaterialPropertyBlock compositeProperties;
 
         static readonly int InputTextureId = Shader.PropertyToID("_InputTexture");
         static readonly int StretchId = Shader.PropertyToID("_Stretch");
@@ -28,12 +38,15 @@ namespace VLiveKit.LiveLensFilters.PostProcessing
         static readonly int ThresholdId = Shader.PropertyToID("_Threshold");
         static readonly int BlurRadiusId = Shader.PropertyToID("_BlurRadius");
         static readonly int IntensityId = Shader.PropertyToID("_Intensity");
-        static readonly int BloomWeightsId = Shader.PropertyToID("_BloomWeights");
         static readonly int ExposureId = Shader.PropertyToID("_Exposure");
         static readonly int ContrastId = Shader.PropertyToID("_Contrast");
         static readonly int SaturationId = Shader.PropertyToID("_Saturation");
         static readonly int BloomIntensityId = Shader.PropertyToID("_BloomIntensity");
         static readonly int BloomColorId = Shader.PropertyToID("_BloomColor");
+
+        static readonly int BlurTextureId = Shader.PropertyToID("_BlurTexture");
+        static readonly int SourceTextureId = Shader.PropertyToID("_SourceTexture");
+        static readonly int MinimumBlurId = Shader.PropertyToID("_MinimumBlur");
 
         public bool IsActive() => material != null && intensity.value > 0;
 
@@ -44,35 +57,103 @@ namespace VLiveKit.LiveLensFilters.PostProcessing
 
         public override void Setup()
         {
+            Cleanup();
             material = CoreUtils.CreateEngineMaterial("Hidden/toshi/LensFilters/GenshinBloom");
+            horizontalProperties = new MaterialPropertyBlock();
+            blurProperties = new MaterialPropertyBlock();
+            compositeProperties = new MaterialPropertyBlock();
+            blurTextureA = AllocateBlurTexture("GenshinBloom Blur A");
+            blurTextureB = AllocateBlurTexture("GenshinBloom Blur B");
+        }
+
+        static RTHandle AllocateBlurTexture(string name)
+        {
+            return RTHandles.Alloc(
+                Vector2.one,
+                format: GraphicsFormat.R16G16B16A16_SFloat,
+                slices: TextureXR.slices,
+                filterMode: FilterMode.Bilinear,
+                wrapMode: TextureWrapMode.Clamp,
+                dimension: TextureXR.dimension,
+                useDynamicScale: true,
+                name: name);
         }
 
         public override void Render(CommandBuffer cmd, HDCamera camera, RTHandle srcRT, RTHandle destRT)
         {
-            if (material == null || material.shader == null || !material.shader.isSupported)
+            if (material == null || material.shader == null || !material.shader.isSupported
+                || blurTextureA == null || blurTextureB == null)
             {
                 HDUtils.BlitCameraTexture(cmd, srcRT, destRT);
                 return;
             }
 
-            material.SetTexture(InputTextureId, srcRT);
-            material.SetFloat(StretchId, stretch.value);
-            material.SetColor(ColorId, tint.value);
-            material.SetFloat(ThresholdId, threshold.value);
-            material.SetFloat(BlurRadiusId, blurRadius.value);
-            material.SetFloat(IntensityId, intensity.value);
-            material.SetVector(BloomWeightsId, weights.value);
-            material.SetFloat(ExposureId, exposure.value);
-            material.SetFloat(ContrastId, contrast.value);
-            material.SetFloat(SaturationId, saturation.value);
-            material.SetFloat(BloomIntensityId, bloomIntensity.value);
-            material.SetColor(BloomColorId, bloomColor.value);
-            HDUtils.DrawFullScreen(cmd, material, destRT);
+            var height = camera != null && camera.actualHeight > 0 ? camera.actualHeight : ReferenceRenderHeight;
+            var radius = Mathf.Max(0f, blurRadius.value) * height / ReferenceRenderHeight;
+            var initialRadiusLimit = 1f / Mathf.Lerp(1f, 2f, stretch.value);
+            var variance = 1f;
+            var lastVariance = 1f;
+            var passCount = 1;
+            // Begin with adjacent texels, then widen the already smooth image. Scaling
+            // one sparse kernel directly produces separated copies of bright details.
+            while (passCount < MaxBlurPassCount && radius * radius > initialRadiusLimit * initialRadiusLimit * variance)
+            {
+                lastVariance *= 4f;
+                variance += lastVariance;
+                passCount++;
+            }
+            var passRadius = radius / Mathf.Sqrt(variance);
+
+            horizontalProperties.Clear();
+            horizontalProperties.SetTexture(InputTextureId, srcRT);
+            horizontalProperties.SetFloat(StretchId, stretch.value);
+            horizontalProperties.SetFloat(ThresholdId, threshold.value);
+            horizontalProperties.SetFloat(BlurRadiusId, passRadius);
+            horizontalProperties.SetFloat(MinimumBlurId, passCount > 1 ? 1f : 0f);
+            HDUtils.DrawFullScreen(cmd, material, blurTextureA, horizontalProperties, 0);
+
+            for (var pass = 1; pass < passCount; pass++)
+            {
+                blurProperties.Clear();
+                blurProperties.SetTexture(BlurTextureId, blurTextureA);
+                blurProperties.SetFloat(StretchId, stretch.value);
+                blurProperties.SetFloat(BlurRadiusId, passRadius);
+                blurProperties.SetFloat(MinimumBlurId, 1f);
+                HDUtils.DrawFullScreen(cmd, material, blurTextureB, blurProperties, 1);
+
+                passRadius *= 2f;
+                blurProperties.SetTexture(BlurTextureId, blurTextureB);
+                blurProperties.SetFloat(BlurRadiusId, passRadius);
+                HDUtils.DrawFullScreen(cmd, material, blurTextureA, blurProperties, 2);
+            }
+
+            compositeProperties.Clear();
+            compositeProperties.SetTexture(SourceTextureId, srcRT);
+            compositeProperties.SetTexture(BlurTextureId, blurTextureA);
+            compositeProperties.SetFloat(BlurRadiusId, passRadius);
+            compositeProperties.SetFloat(MinimumBlurId, passCount > 1 ? 1f : 0f);
+            compositeProperties.SetFloat(StretchId, stretch.value);
+            compositeProperties.SetColor(ColorId, tint.value);
+            compositeProperties.SetFloat(IntensityId, intensity.value);
+            compositeProperties.SetFloat(ExposureId, exposure.value);
+            compositeProperties.SetFloat(ContrastId, contrast.value);
+            compositeProperties.SetFloat(SaturationId, saturation.value);
+            compositeProperties.SetFloat(BloomIntensityId, bloomIntensity.value);
+            compositeProperties.SetColor(BloomColorId, bloomColor.value);
+            HDUtils.DrawFullScreen(cmd, material, destRT, compositeProperties, 3);
         }
 
         public override void Cleanup()
         {
+            blurTextureA?.Release();
+            blurTextureA = null;
+            blurTextureB?.Release();
+            blurTextureB = null;
             CoreUtils.Destroy(material);
+            material = null;
+            horizontalProperties = null;
+            blurProperties = null;
+            compositeProperties = null;
         }
     }
 }

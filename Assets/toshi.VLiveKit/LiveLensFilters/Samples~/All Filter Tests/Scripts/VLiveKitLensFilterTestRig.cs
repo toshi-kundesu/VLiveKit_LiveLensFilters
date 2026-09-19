@@ -1,3 +1,4 @@
+using System.Collections.Generic;
 using UnityEngine;
 using UnityEngine.Rendering;
 using UnityEngine.Rendering.HighDefinition;
@@ -11,168 +12,475 @@ public sealed class VLiveKitLensFilterTestRig : MonoBehaviour
     [Min(1f)] public float cycleSeconds = 3f;
     [Range(0, 31)] public int layerBloomLayer = 30;
     public bool showBloomOnly;
+    [Tooltip("Optional model asset. A sphere is used when the model is not installed.")]
+    public GameObject previewModel;
+    [Tooltip("Additional rotation; the model's imported rotation is preserved.")]
+    public Vector3 previewModelEuler = Vector3.zero;
+    [Tooltip("Show the sample overlay in Game View.")]
+    public bool showLabel = true;
+    [Tooltip("Include filter selection and Auto Cycle controls in the overlay.")]
+    public bool showControls = true;
 
     const string GeneratedRootName = "Generated Preview Rig";
+    const HideFlags RuntimeFlags = HideFlags.DontSaveInEditor | HideFlags.DontSaveInBuild;
     const int PresetCount = (int)LensFilterTestPreset.LayerBloom + 1;
 
     Transform generatedRoot;
     Volume volume;
     CustomPassVolume customPassVolume;
-    TextMesh label;
     VolumeProfile runtimeProfile;
+    readonly List<Material> generatedMaterials = new List<Material>();
     LensFilterTestPreset appliedPreset = (LensFilterTestPreset)(-1);
+    bool rebuildRequested;
+    bool configurationChanged;
+    GameObject builtPreviewModel;
+    Vector3 builtPreviewModelEuler;
+    int builtLayerBloomLayer;
+    LensFilterTestPreset activePreset;
+    LensFilterTestPreset observedSelectedPreset;
+    bool observedAutoCycle;
+    float observedCycleSeconds;
+    double nextCycleAt;
+    bool presetListOpen;
+    Vector2 presetListScroll;
+    GUIStyle labelStyle;
+    GUIStyle headingStyle;
+    GUIStyle buttonStyle;
+    GUIStyle listStyle;
+    GUIStyle countStyle;
+
+    public LensFilterTestPreset ActivePreset => activePreset;
 
     void OnEnable()
     {
+        // Editor hot reload can retain only the GUIStyle fields from an older rig.
+        labelStyle = headingStyle = buttonStyle = listStyle = countStyle = null;
+        CleanupRig();
         EnsureRig();
+        activePreset = ClampPreset((int)selectedPreset);
+        ResetCycleClock();
         ApplyPreset(GetActivePreset(), true);
     }
 
     void OnDisable()
     {
-        DestroyRuntimeObject(runtimeProfile);
-        runtimeProfile = null;
+        CleanupRig();
     }
 
     void OnValidate()
     {
         cycleSeconds = Mathf.Max(1f, cycleSeconds);
         layerBloomLayer = Mathf.Clamp(layerBloomLayer, 0, 31);
+        // Inspect structural changes in Update; preset edits do not rebuild the stage.
+        configurationChanged = true;
         appliedPreset = (LensFilterTestPreset)(-1);
     }
 
     void Update()
     {
+        if (configurationChanged)
+        {
+            rebuildRequested = builtPreviewModel != previewModel || builtPreviewModelEuler != previewModelEuler || builtLayerBloomLayer != layerBloomLayer;
+            configurationChanged = false;
+        }
+        UpdateCycle();
         EnsureRig();
         ApplyPreset(GetActivePreset(), false);
     }
 
+    void OnGUI()
+    {
+        if (!showLabel)
+            return;
+
+        EnsureGUIStyles();
+        var previousMatrix = GUI.matrix;
+        var previousColor = GUI.color;
+        var scale = Mathf.Clamp(Screen.height / 900f, 0.85f, 1.25f);
+        GUI.matrix = Matrix4x4.Scale(new Vector3(scale, scale, 1f));
+        GUI.color = Color.white;
+        var screenWidth = Screen.width / scale;
+        var screenHeight = Screen.height / scale;
+        const float margin = 16f;
+
+        if (!showControls)
+        {
+            GUI.Label(new Rect(margin, screenHeight - 38f, screenWidth - margin * 2f, 24f), GetDisplayName(activePreset), labelStyle);
+        }
+        else
+        {
+            var panelWidth = Mathf.Min(340f, screenWidth - margin * 2f);
+            var panel = new Rect(margin, margin, panelWidth, 120f);
+            var dropdownHeight = Mathf.Min(320f, screenHeight - panel.yMax - margin - 6f);
+            var dropdown = new Rect(panel.x, panel.yMax + 6f, panel.width, dropdownHeight);
+            if (presetListOpen && Event.current.type == EventType.MouseDown && !panel.Contains(Event.current.mousePosition) && !dropdown.Contains(Event.current.mousePosition))
+                presetListOpen = false;
+
+            DrawFill(panel, new Color(0.018f, 0.026f, 0.043f, 0.9f));
+            DrawFill(new Rect(panel.x, panel.y, 3f, panel.height), new Color(0.36f, 0.68f, 0.95f, 0.95f));
+            GUI.Label(new Rect(panel.x + 14f, panel.y + 10f, panel.width - 88f, 22f), "VLiveKit / Lens Filters", headingStyle);
+            GUI.Label(new Rect(panel.xMax - 68f, panel.y + 10f, 54f, 22f), $"{(int)activePreset + 1:00} / {PresetCount}", countStyle);
+
+            var rowY = panel.y + 39f;
+            if (DrawButton(new Rect(panel.x + 14f, rowY, 32f, 34f), "<"))
+                StepPreset(-1);
+            if (DrawButton(new Rect(panel.x + 52f, rowY, panel.width - 104f, 34f), GetDisplayName(activePreset) + "  v", presetListOpen))
+            {
+                presetListOpen = !presetListOpen;
+                presetListScroll.y = Mathf.Max(0f, (int)activePreset * 30f - dropdownHeight * 0.4f);
+            }
+            if (DrawButton(new Rect(panel.xMax - 46f, rowY, 32f, 34f), ">"))
+                StepPreset(1);
+
+            if (DrawButton(new Rect(panel.x + 14f, panel.y + 82f, 128f, 26f), autoCycle ? "Auto Cycle  ON" : "Auto Cycle  OFF", autoCycle))
+                SetAutoCycle(!autoCycle);
+            GUI.Label(new Rect(panel.x + 152f, panel.y + 83f, panel.width - 166f, 24f), autoCycle ? $"Next in {Mathf.CeilToInt((float)System.Math.Max(0d, nextCycleAt - Time.realtimeSinceStartupAsDouble))}s" : "Manual selection", countStyle);
+            if (autoCycle)
+            {
+                var progress = 1f - Mathf.Clamp01((float)(nextCycleAt - Time.realtimeSinceStartupAsDouble) / Mathf.Max(1f, cycleSeconds));
+                DrawFill(new Rect(panel.x + 14f, panel.yMax - 4f, (panel.width - 28f) * progress, 2f), new Color(0.36f, 0.68f, 0.95f, 0.9f));
+            }
+
+            if (presetListOpen && dropdownHeight > 30f)
+            {
+                DrawFill(dropdown, new Color(0.018f, 0.026f, 0.043f, 0.97f));
+                var viewport = new Rect(dropdown.x + 6f, dropdown.y + 6f, dropdown.width - 12f, dropdown.height - 12f);
+                var content = new Rect(0f, 0f, viewport.width - 18f, PresetCount * 30f);
+                presetListScroll = GUI.BeginScrollView(viewport, presetListScroll, content, false, true);
+                for (var i = 0; i < PresetCount; i++)
+                {
+                    var row = new Rect(0f, i * 30f, content.width, 29f);
+                    if (DrawButton(row, $"{i + 1:00}   {GetDisplayName((LensFilterTestPreset)i)}", i == (int)activePreset, listStyle))
+                    {
+                        SelectPreset(i);
+                        presetListOpen = false;
+                    }
+                }
+                GUI.EndScrollView();
+            }
+        }
+
+        GUI.color = previousColor;
+        GUI.matrix = previousMatrix;
+    }
+
     LensFilterTestPreset GetActivePreset()
     {
-        if (!autoCycle)
-            return selectedPreset;
+        return activePreset;
+    }
 
-        var index = Mathf.FloorToInt(Time.realtimeSinceStartup / Mathf.Max(1f, cycleSeconds));
-        return (LensFilterTestPreset)(index % PresetCount);
+    public void SelectPreset(int index)
+    {
+        selectedPreset = ClampPreset(index);
+        activePreset = selectedPreset;
+        autoCycle = false;
+        ResetCycleClock();
+    }
+
+    public void StepPreset(int direction)
+    {
+        SelectPreset(((int)activePreset + direction % PresetCount + PresetCount) % PresetCount);
+    }
+
+    public void SetAutoCycle(bool enabled)
+    {
+        selectedPreset = activePreset;
+        autoCycle = enabled;
+        ResetCycleClock();
+    }
+
+    static LensFilterTestPreset ClampPreset(int index)
+    {
+        return (LensFilterTestPreset)Mathf.Clamp(index, 0, PresetCount - 1);
+    }
+
+    void ResetCycleClock()
+    {
+        observedSelectedPreset = selectedPreset;
+        observedAutoCycle = autoCycle;
+        observedCycleSeconds = cycleSeconds;
+        nextCycleAt = Time.realtimeSinceStartupAsDouble + Mathf.Max(1f, cycleSeconds);
+    }
+
+    void UpdateCycle()
+    {
+        if (selectedPreset != observedSelectedPreset)
+        {
+            activePreset = ClampPreset((int)selectedPreset);
+            ResetCycleClock();
+        }
+        else if (autoCycle != observedAutoCycle || cycleSeconds != observedCycleSeconds)
+        {
+            // Inspector toggles also continue from the effect currently on screen.
+            selectedPreset = activePreset;
+            ResetCycleClock();
+        }
+
+        if (autoCycle && Time.realtimeSinceStartupAsDouble >= nextCycleAt)
+        {
+            activePreset = (LensFilterTestPreset)(((int)activePreset + 1) % PresetCount);
+            nextCycleAt = Time.realtimeSinceStartupAsDouble + Mathf.Max(1f, cycleSeconds);
+        }
+    }
+
+    void EnsureGUIStyles()
+    {
+        if (labelStyle != null && headingStyle != null && buttonStyle != null && listStyle != null && countStyle != null)
+            return;
+
+        labelStyle = new GUIStyle(GUI.skin.label) { fontSize = 16, alignment = TextAnchor.MiddleLeft };
+        labelStyle.normal.textColor = new Color(0.9f, 0.94f, 1f);
+        headingStyle = new GUIStyle(labelStyle) { fontSize = 12, fontStyle = FontStyle.Bold };
+        headingStyle.normal.textColor = new Color(0.61f, 0.72f, 0.83f);
+        buttonStyle = new GUIStyle(labelStyle) { fontSize = 14, alignment = TextAnchor.MiddleCenter, clipping = TextClipping.Clip, wordWrap = true };
+        listStyle = new GUIStyle(buttonStyle) { alignment = TextAnchor.MiddleLeft, padding = new RectOffset(9, 9, 0, 0), wordWrap = false };
+        countStyle = new GUIStyle(labelStyle) { fontSize = 12, alignment = TextAnchor.MiddleRight };
+        countStyle.normal.textColor = new Color(0.61f, 0.72f, 0.83f);
+    }
+
+    bool DrawButton(Rect rect, string text, bool selected = false, GUIStyle style = null)
+    {
+        var hovered = rect.Contains(Event.current.mousePosition);
+        var color = selected ? new Color(0.13f, 0.29f, 0.43f, 0.95f) : new Color(0.12f, 0.16f, 0.21f, hovered ? 1f : 0.8f);
+        DrawFill(rect, color);
+        return GUI.Button(rect, text, style ?? buttonStyle);
+    }
+
+    static void DrawFill(Rect rect, Color color)
+    {
+        var previous = GUI.color;
+        GUI.color = color;
+        GUI.DrawTexture(rect, Texture2D.whiteTexture);
+        GUI.color = previous;
     }
 
     void EnsureRig()
     {
-        generatedRoot = transform.Find(GeneratedRootName);
-        if (generatedRoot == null)
-        {
-            var rootObject = new GameObject(GeneratedRootName);
-            rootObject.hideFlags = HideFlags.DontSaveInEditor | HideFlags.DontSaveInBuild;
-            generatedRoot = rootObject.transform;
-            generatedRoot.SetParent(transform, false);
-            BuildPreviewObjects();
-        }
+        if (rebuildRequested)
+            CleanupRig();
 
-        if (volume == null)
-            volume = GetOrCreateComponent<Volume>("Global Volume");
+        if (generatedRoot != null)
+            return;
 
-        if (customPassVolume == null)
-            customPassVolume = GetOrCreateComponent<CustomPassVolume>("Layer Bloom Custom Pass");
+        generatedRoot = CreateObject(GeneratedRootName, transform).transform;
+        BuildPreviewObjects();
+        volume = CreateObject("Global Volume", generatedRoot).AddComponent<Volume>();
+        customPassVolume = CreateObject("Layer Bloom Custom Pass", generatedRoot).AddComponent<CustomPassVolume>();
+        customPassVolume.enabled = false;
+        builtPreviewModel = previewModel;
+        builtPreviewModelEuler = previewModelEuler;
+        builtLayerBloomLayer = layerBloomLayer;
+        rebuildRequested = false;
     }
 
-    T GetOrCreateComponent<T>(string objectName) where T : Component
+    void CleanupRig()
     {
-        var child = generatedRoot.Find(objectName);
-        if (child == null)
+        DestroyProfile();
+        if (generatedRoot == null)
+            generatedRoot = transform.Find(GeneratedRootName);
+
+        // Only this rig's transient hierarchy is owned here; never destroy model assets or meshes.
+        if (generatedRoot != null && (generatedRoot.gameObject.hideFlags & RuntimeFlags) == RuntimeFlags)
         {
-            var gameObject = new GameObject(objectName);
-            gameObject.hideFlags = HideFlags.DontSaveInEditor | HideFlags.DontSaveInBuild;
-            child = gameObject.transform;
-            child.SetParent(generatedRoot, false);
+            generatedRoot.gameObject.SetActive(false);
+            generatedRoot.name = "Retiring Preview Rig";
+            DestroyRuntimeObject(generatedRoot.gameObject);
         }
 
-        var component = child.GetComponent<T>();
-        if (component == null)
-            component = child.gameObject.AddComponent<T>();
+        generatedRoot = null;
+        volume = null;
+        customPassVolume = null;
+        foreach (var material in generatedMaterials)
+            DestroyRuntimeObject(material);
+        generatedMaterials.Clear();
+        appliedPreset = (LensFilterTestPreset)(-1);
+    }
 
-        return component;
+    void DestroyProfile()
+    {
+        if (volume != null)
+            volume.sharedProfile = null;
+        if (runtimeProfile == null)
+            return;
+
+        foreach (var component in runtimeProfile.components)
+            DestroyRuntimeObject(component);
+        runtimeProfile.components.Clear();
+        DestroyRuntimeObject(runtimeProfile);
+        runtimeProfile = null;
+    }
+
+    static GameObject CreateObject(string objectName, Transform parent)
+    {
+        var gameObject = new GameObject(objectName) { hideFlags = RuntimeFlags };
+        gameObject.transform.SetParent(parent, false);
+        return gameObject;
     }
 
     void BuildPreviewObjects()
     {
-        var cameraObject = new GameObject("Preview Camera");
-        cameraObject.hideFlags = HideFlags.DontSaveInEditor | HideFlags.DontSaveInBuild;
-        cameraObject.transform.SetParent(generatedRoot, false);
-        cameraObject.transform.SetPositionAndRotation(new Vector3(0f, 2.1f, -8f), Quaternion.Euler(12f, 0f, 0f));
+        var cameraObject = CreateObject("Preview Camera", generatedRoot);
+        cameraObject.transform.localPosition = new Vector3(2.6f, 1.75f, -5.1f);
+        cameraObject.transform.localRotation = Quaternion.LookRotation(new Vector3(0.05f, 1.22f, 0.65f) - cameraObject.transform.localPosition);
         var camera = cameraObject.AddComponent<Camera>();
-        camera.fieldOfView = 42f;
+        camera.fieldOfView = 34f;
         camera.nearClipPlane = 0.05f;
-        camera.farClipPlane = 80f;
-        camera.backgroundColor = new Color(0.02f, 0.025f, 0.035f, 1f);
-        camera.clearFlags = CameraClearFlags.SolidColor;
+        camera.farClipPlane = 250f;
+        camera.backgroundColor = Color.black;
+        camera.clearFlags = CameraClearFlags.Skybox;
         var cameraData = cameraObject.AddComponent<HDAdditionalCameraData>();
         cameraData.volumeLayerMask = 1;
         cameraData.antialiasing = HDAdditionalCameraData.AntialiasingMode.SubpixelMorphologicalAntiAliasing;
 
-        var keyLightObject = new GameObject("Key Light");
-        keyLightObject.hideFlags = HideFlags.DontSaveInEditor | HideFlags.DontSaveInBuild;
-        keyLightObject.transform.SetParent(generatedRoot, false);
-        keyLightObject.transform.SetPositionAndRotation(new Vector3(-3.5f, 4.5f, -2.5f), Quaternion.Euler(50f, -30f, 0f));
-        var keyLight = keyLightObject.AddComponent<Light>();
-        keyLight.type = LightType.Directional;
-        keyLight.color = new Color(1f, 0.93f, 0.82f);
-        keyLight.intensity = 2.2f;
+        // Local lights leave the stage dark while revealing the model's silhouette.
+        CreateAreaLight("Sculpture Key", new Vector3(-1.5f, 3.4f, -3f), new Vector3(-0.6f, 1.25f, 0.65f), new Color(1f, 0.95f, 0.88f), 25000f, new Vector2(1.4f, 2.6f));
+        CreateAreaLight("Blue Rim", new Vector3(2.3f, 2.6f, 2.7f), new Vector3(-0.4f, 1f, 0.4f), new Color(0.14f, 0.42f, 1f), 5000f, new Vector2(0.7f, 2.6f));
+        CreateAreaLight("Amber Edge", new Vector3(-2.4f, 1.8f, 2f), new Vector3(-0.2f, 1f, 0.4f), new Color(1f, 0.48f, 0.18f), 4000f, new Vector2(0.45f, 2.2f));
 
-        CreatePrimitive("Floor", PrimitiveType.Cube, new Vector3(0f, -0.55f, 1.8f), new Vector3(8f, 0.08f, 7f), CreateMaterial("Floor Matte", new Color(0.09f, 0.1f, 0.12f), Color.black, 0f), 0);
-        CreatePrimitive("Backdrop", PrimitiveType.Cube, new Vector3(0f, 1.65f, 5f), new Vector3(8f, 4f, 0.08f), CreateMaterial("Backdrop Matte", new Color(0.05f, 0.06f, 0.08f), Color.black, 0f), 0);
-        CreatePrimitive("Warm Emissive Sphere", PrimitiveType.Sphere, new Vector3(-2.2f, 0.4f, 1.5f), Vector3.one * 0.8f, CreateMaterial("Warm Emissive", new Color(1f, 0.38f, 0.12f), new Color(4f, 1.1f, 0.25f), 1f), 0);
-        CreatePrimitive("Cool Emissive Sphere", PrimitiveType.Sphere, new Vector3(2.2f, 0.4f, 1.5f), Vector3.one * 0.8f, CreateMaterial("Cool Emissive", new Color(0.1f, 0.55f, 1f), new Color(0.2f, 1.8f, 4f), 1f), 0);
-        CreatePrimitive("Layer Bloom Source A", PrimitiveType.Cube, new Vector3(-0.7f, 0.55f, 0.2f), new Vector3(0.7f, 0.7f, 0.7f), CreateMaterial("Layer Bloom Pink", new Color(1f, 0.18f, 0.75f), new Color(5f, 0.25f, 3.5f), 1f), layerBloomLayer);
-        CreatePrimitive("Layer Bloom Source B", PrimitiveType.Cube, new Vector3(0.7f, 0.55f, 0.2f), new Vector3(0.7f, 0.7f, 0.7f), CreateMaterial("Layer Bloom Cyan", new Color(0.1f, 0.95f, 1f), new Color(0.2f, 4.5f, 5f), 1f), layerBloomLayer);
+        var floor = CreateMaterial("Obsidian Floor", new Color(0.014f, 0.018f, 0.026f), 0.45f, 0.72f);
+        var plinth = CreateMaterial("Charcoal Stage", new Color(0.025f, 0.03f, 0.04f), 0.5f, 0.48f);
+        var ceramic = CreateMaterial("Graphite Sculpture", new Color(0.3f, 0.3f, 0.3f), 0.1f, 0.4f);
+        var chrome = CreateMaterial("Polished Chrome", new Color(0.8f, 0.83f, 0.88f), 1f, 0.92f);
+        var red = CreateMaterial("Vermilion", new Color(0.6f, 0.055f, 0.026f), 0f, 0.5f);
+        CreatePrimitive("Dark Floor", PrimitiveType.Cube, new Vector3(0f, -0.06f, 0f), new Vector3(80f, 0.1f, 80f), floor);
+        CreatePrimitive("Low Circular Stage", PrimitiveType.Cylinder, new Vector3(-0.45f, 0.055f, 0.65f), new Vector3(3.2f, 0.055f, 3.2f), plinth);
+        CreatePreviewModel(new Vector3(-0.65f, 0.11f, 0.65f), 2.6f, ceramic);
+        CreatePrimitive("Chrome Sphere", PrimitiveType.Sphere, new Vector3(1.45f, 0.62f, 0.7f), Vector3.one * 1.24f, chrome);
+        CreatePrimitive("Vermilion Sphere", PrimitiveType.Sphere, new Vector3(0.9f, 0.3f, -0.45f), Vector3.one * 0.6f, red);
 
-        var labelObject = new GameObject("Preset Label");
-        labelObject.hideFlags = HideFlags.DontSaveInEditor | HideFlags.DontSaveInBuild;
-        labelObject.transform.SetParent(generatedRoot, false);
-        labelObject.transform.SetPositionAndRotation(new Vector3(-3.5f, 2.8f, 1.2f), Quaternion.Euler(0f, 0f, 0f));
-        label = labelObject.AddComponent<TextMesh>();
-        label.anchor = TextAnchor.UpperLeft;
-        label.alignment = TextAlignment.Left;
-        label.characterSize = 0.16f;
-        label.fontSize = 48;
-        label.color = new Color(0.92f, 0.94f, 0.98f, 1f);
+        // A small stage light array supplies distinct HDR sources for flare and bloom tests.
+        var warm = CreateMaterial("Amber Emitters", Color.black, 0f, 0.4f, new Color(2400f, 630f, 110f));
+        var cool = CreateMaterial("Ice Emitters", Color.black, 0f, 0.4f, new Color(400f, 1500f, 3000f));
+        var dim = CreateMaterial("Blue Standby Emitters", Color.black, 0f, 0.4f, new Color(5f, 25f, 100f));
+        for (var column = 0; column < 9; column++)
+        {
+            for (var row = 0; row < 4; row++)
+            {
+                var material = (column + row * 2) % 7 == 0 ? warm : (column + row) % 5 == 0 ? cool : dim;
+                CreatePrimitive("Layer Bloom Stage Lamp", PrimitiveType.Sphere,
+                    new Vector3(-2.8f + column * 0.46f, 0.7f + row * 0.46f, 3.8f), Vector3.one * 0.065f, material, layerBloomLayer);
+            }
+        }
+
+        var probeObject = CreateObject("Stage Reflections", generatedRoot);
+        probeObject.transform.localPosition = new Vector3(0f, 1.3f, 0.65f);
+        var probe = probeObject.AddComponent<ReflectionProbe>();
+        probe.resolution = 256;
+        var probeData = probeObject.AddComponent<HDAdditionalReflectionData>();
+        probeData.settingsRaw.cubeResolution.useOverride = true;
+        probeData.settingsRaw.cubeResolution.@override = CubeReflectionResolution.CubeReflectionResolution256;
+        probeData.mode = ProbeSettings.Mode.Realtime;
+        probeData.realtimeMode = ProbeSettings.RealtimeMode.OnEnable;
+        probeData.influenceVolume.boxSize = new Vector3(12f, 8f, 12f);
+        probeData.influenceVolume.boxBlendDistancePositive = Vector3.one;
+        probeData.influenceVolume.boxBlendDistanceNegative = Vector3.one;
     }
 
-    void CreatePrimitive(string objectName, PrimitiveType primitiveType, Vector3 position, Vector3 scale, Material material, int layer)
+    void CreateAreaLight(string objectName, Vector3 position, Vector3 target, Color color, float nits, Vector2 size)
+    {
+        var lightObject = CreateObject(objectName, generatedRoot);
+        lightObject.transform.localPosition = position;
+        lightObject.transform.localRotation = Quaternion.LookRotation(target - position);
+        var light = lightObject.AddComponent<Light>();
+        light.type = LightType.Rectangle;
+        var data = lightObject.AddComponent<HDAdditionalLightData>();
+        light.lightUnit = LightUnit.Nits;
+        light.intensity = nits;
+        light.color = color;
+        light.useColorTemperature = false;
+        light.range = 12f;
+        light.shadows = LightShadows.Soft;
+        light.areaSize = size;
+        data.UpdateAllLightValues();
+    }
+
+    void CreatePreviewModel(Vector3 basePosition, float size, Material material)
+    {
+        if (previewModel == null)
+        {
+            CreatePrimitive("Ceramic Sphere (Optional Model Missing)", PrimitiveType.Sphere, basePosition + Vector3.up * 0.72f, Vector3.one * 1.44f, material);
+            return;
+        }
+
+        var wrapper = CreateObject("Sculpture Test Model", generatedRoot).transform;
+        var model = Instantiate(previewModel, wrapper, false);
+        // Apply an optional orientation outside the imported hierarchy, preserving FBX axis conversion.
+        var importedRotation = model.transform.localRotation;
+        model.transform.localRotation = Quaternion.Euler(previewModelEuler) * importedRotation;
+        foreach (var child in model.GetComponentsInChildren<Transform>(true))
+            child.gameObject.hideFlags = RuntimeFlags;
+
+        var renderers = model.GetComponentsInChildren<Renderer>(true);
+        var bounds = new Bounds();
+        var hasBounds = false;
+        foreach (var renderer in renderers)
+        {
+            var materials = renderer.sharedMaterials;
+            for (var i = 0; i < materials.Length; i++)
+                materials[i] = material;
+            renderer.sharedMaterials = materials;
+            var local = renderer.localBounds;
+            var matrix = wrapper.worldToLocalMatrix * renderer.localToWorldMatrix;
+            for (var corner = 0; corner < 8; corner++)
+            {
+                var point = matrix.MultiplyPoint3x4(local.center + Vector3.Scale(local.extents,
+                    new Vector3((corner & 1) == 0 ? -1f : 1f, (corner & 2) == 0 ? -1f : 1f, (corner & 4) == 0 ? -1f : 1f)));
+                if (!hasBounds)
+                {
+                    bounds = new Bounds(point, Vector3.zero);
+                    hasBounds = true;
+                }
+                else
+                    bounds.Encapsulate(point);
+            }
+        }
+
+        if (!hasBounds || bounds.size.sqrMagnitude < 0.000001f)
+        {
+            DestroyRuntimeObject(wrapper.gameObject);
+            CreatePrimitive("Ceramic Sphere (Model Has No Geometry)", PrimitiveType.Sphere, basePosition + Vector3.up * 0.72f, Vector3.one * 1.44f, material);
+            return;
+        }
+
+        var scale = size / Mathf.Max(bounds.size.x, bounds.size.y, bounds.size.z);
+        wrapper.localScale = Vector3.one * scale;
+        wrapper.localPosition = basePosition - new Vector3(bounds.center.x, bounds.min.y, bounds.center.z) * scale;
+    }
+
+    void CreatePrimitive(string objectName, PrimitiveType primitiveType, Vector3 position, Vector3 scale, Material material, int layer = 0)
     {
         var gameObject = GameObject.CreatePrimitive(primitiveType);
         gameObject.name = objectName;
-        gameObject.hideFlags = HideFlags.DontSaveInEditor | HideFlags.DontSaveInBuild;
+        gameObject.hideFlags = RuntimeFlags;
         gameObject.layer = Mathf.Clamp(layer, 0, 31);
         gameObject.transform.SetParent(generatedRoot, false);
         gameObject.transform.localPosition = position;
         gameObject.transform.localScale = scale;
-        var renderer = gameObject.GetComponent<Renderer>();
-        if (renderer != null)
-            renderer.sharedMaterial = material;
+        gameObject.GetComponent<Renderer>().sharedMaterial = material;
+        var collider = gameObject.GetComponent<Collider>();
+        collider.enabled = false;
+        DestroyRuntimeObject(collider);
     }
 
-    static Material CreateMaterial(string name, Color baseColor, Color emission, float emissionIntensity)
+    Material CreateMaterial(string name, Color baseColor, float metallic, float smoothness, Color emission = default)
     {
         var shader = Shader.Find("HDRP/Lit");
         if (shader == null)
             shader = Shader.Find("Standard");
 
-        var material = new Material(shader)
-        {
-            name = name,
-            hideFlags = HideFlags.DontSaveInEditor | HideFlags.DontSaveInBuild
-        };
-
+        var material = new Material(shader) { name = name, hideFlags = RuntimeFlags };
+        generatedMaterials.Add(material);
         SetColor(material, "_BaseColor", baseColor);
         SetColor(material, "_Color", baseColor);
-
-        if (emissionIntensity > 0f)
-        {
+        SetFloat(material, "_Metallic", metallic);
+        SetFloat(material, "_Smoothness", smoothness);
+        SetFloat(material, "_Glossiness", smoothness);
+        SetColor(material, "_EmissiveColor", emission);
+        SetColor(material, "_EmissionColor", emission);
+        if (shader.name == "HDRP/Lit")
+            HDMaterial.ValidateMaterial(material);
+        else if (emission.maxColorComponent > 0f)
             material.EnableKeyword("_EMISSION");
-            SetColor(material, "_EmissiveColor", emission * emissionIntensity);
-            SetColor(material, "_EmissionColor", emission * emissionIntensity);
-        }
-
         return material;
     }
 
@@ -182,32 +490,59 @@ public sealed class VLiveKitLensFilterTestRig : MonoBehaviour
             material.SetColor(propertyName, value);
     }
 
+    static void SetFloat(Material material, string propertyName, float value)
+    {
+        if (material.HasProperty(propertyName))
+            material.SetFloat(propertyName, value);
+    }
+
+    void ApplyStudioEnvironment()
+    {
+        var exposure = runtimeProfile.Add<Exposure>(true);
+        Override(exposure.mode, ExposureMode.Fixed);
+        Override(exposure.fixedExposure, 9f);
+        var environment = runtimeProfile.Add<VisualEnvironment>(true);
+        Override(environment.skyType, (int)SkyType.Gradient);
+        Override(environment.skyAmbientMode, SkyAmbientMode.Dynamic);
+        var sky = runtimeProfile.Add<GradientSky>(true);
+        Override(sky.top, new Color(0.012f, 0.016f, 0.026f));
+        Override(sky.middle, new Color(0.004f, 0.006f, 0.01f));
+        Override(sky.bottom, Color.black);
+        Override(sky.skyIntensityMode, SkyIntensityMode.Multiplier);
+        Override(sky.multiplier, 1f);
+        Override(sky.updateMode, EnvironmentUpdateMode.OnChanged);
+        var ambientOcclusion = runtimeProfile.Add<ScreenSpaceAmbientOcclusion>(true);
+        Override(ambientOcclusion.intensity, 0.7f);
+        Override(ambientOcclusion.radius, 0.3f);
+    }
+
     void ApplyPreset(LensFilterTestPreset preset, bool force)
     {
         if (!force && preset == appliedPreset && runtimeProfile != null)
-        {
-            UpdateLabel(preset);
             return;
-        }
 
         appliedPreset = preset;
-        DestroyRuntimeObject(runtimeProfile);
+        DestroyProfile();
         runtimeProfile = ScriptableObject.CreateInstance<VolumeProfile>();
         runtimeProfile.name = "Runtime " + GetDisplayName(preset);
         runtimeProfile.hideFlags = HideFlags.DontSaveInEditor | HideFlags.DontSaveInBuild;
 
+        ApplyStudioEnvironment();
         volume.isGlobal = true;
         volume.priority = 0f;
         volume.weight = 1f;
         volume.sharedProfile = runtimeProfile;
 
-        customPassVolume.enabled = preset == LensFilterTestPreset.LayerBloom;
+        // Disabling first lets HDRP release resources before replacing a custom pass.
+        customPassVolume.enabled = false;
+        customPassVolume.customPasses.Clear();
         if (preset == LensFilterTestPreset.LayerBloom)
+        {
             ApplyLayerBloom();
+            customPassVolume.enabled = true;
+        }
         else
             ApplyCreativeFx(preset);
-
-        UpdateLabel(preset);
     }
 
     void ApplyLayerBloom()
@@ -249,13 +584,15 @@ public sealed class VLiveKitLensFilterTestRig : MonoBehaviour
         {
             case LensFilterTestPreset.AnalogDamage:
                 var analogDamage = AddEffect<AnalogDamage>();
-                Override(analogDamage.noise, 0.55f);
-                Override(analogDamage.scanlines, 0.55f);
+                Override(analogDamage.intensity, 0.34f);
+                Override(analogDamage.noise, 0.41f);
+                Override(analogDamage.scanlines, 0.25f);
                 break;
             case LensFilterTestPreset.AnamorphicFlare:
                 var anamorphicFlare = AddEffect<AnamorphicFlare>();
-                Override(anamorphicFlare.threshold, 0.45f);
-                Override(anamorphicFlare.length, 0.85f);
+                Override(anamorphicFlare.intensity, 0.12f);
+                Override(anamorphicFlare.threshold, 0.18f);
+                Override(anamorphicFlare.length, 0.4f);
                 Override(anamorphicFlare.tint, new Color(0.35f, 0.6f, 1f, 1f));
                 break;
             case LensFilterTestPreset.AnimeSpeedLines:
@@ -270,15 +607,17 @@ public sealed class VLiveKitLensFilterTestRig : MonoBehaviour
                 break;
             case LensFilterTestPreset.BlockTearGlitch:
                 var blockTearGlitch = AddEffect<BlockTearGlitch>();
-                Override(blockTearGlitch.probability, 0.35f);
-                Override(blockTearGlitch.displacement, 0.75f);
-                Override(blockTearGlitch.blockSize, 0.45f);
-                Override(blockTearGlitch.quantizeSteps, 9);
+                Override(blockTearGlitch.intensity, 0.35f);
+                Override(blockTearGlitch.probability, 0.29f);
+                Override(blockTearGlitch.displacement, 0.63f);
+                Override(blockTearGlitch.blockSize, 0.68f);
+                Override(blockTearGlitch.quantizeSteps, 15);
                 break;
             case LensFilterTestPreset.ChromaticAberrationPlus:
                 var chromaticAberrationPlus = AddEffect<ChromaticAberrationPlus>();
-                Override(chromaticAberrationPlus.amount, 0.72f);
-                Override(chromaticAberrationPlus.edgeBias, 1.1f);
+                Override(chromaticAberrationPlus.intensity, 1f);
+                Override(chromaticAberrationPlus.amount, 0.49f);
+                Override(chromaticAberrationPlus.edgeBias, 0.22f);
                 break;
             case LensFilterTestPreset.CinemaScope:
                 var cinemaScope = AddEffect<CinemaScope>();
@@ -289,7 +628,8 @@ public sealed class VLiveKitLensFilterTestRig : MonoBehaviour
                 break;
             case LensFilterTestPreset.ColorQuantize:
                 var colorQuantize = AddEffect<ColorQuantize>();
-                Override(colorQuantize.steps, 5);
+                Override(colorQuantize.intensity, 1f);
+                Override(colorQuantize.steps, 7);
                 Override(colorQuantize.dither, 0.35f);
                 break;
             case LensFilterTestPreset.DepthFogOverlay:
@@ -300,14 +640,19 @@ public sealed class VLiveKitLensFilterTestRig : MonoBehaviour
                 break;
             case LensFilterTestPreset.Diffusion:
                 var diffusionEffect = AddCustomPostProcess<diffusion>();
-                Override(diffusionEffect.sourceMode, diffusion.SourceMode.HighlightsOnly);
+                Override(diffusionEffect.sourceMode, diffusion.SourceMode.FullFrame);
                 Override(diffusionEffect.blendMode, diffusion.BlendMode.Screen);
-                Override(diffusionEffect.useTint, true);
-                Override(diffusionEffect.tint, new Color(0.7f, 0.82f, 1f, 1f));
+                Override(diffusionEffect.useTint, false);
+                Override(diffusionEffect.tint, Color.white);
+                Override(diffusionEffect.stretch, 0.75f);
                 Override(diffusionEffect.threshold, 0.42f);
                 Override(diffusionEffect.blurRadius, 4f);
                 Override(diffusionEffect.intensity, 0.72f);
+                Override(diffusionEffect.exposure, 1f);
+                Override(diffusionEffect.contrast, 1f);
+                Override(diffusionEffect.saturation, 1f);
                 Override(diffusionEffect.bloomIntensity, 1.25f);
+                Override(diffusionEffect.bloomColor, Color.white);
                 break;
             case LensFilterTestPreset.DreamBlur:
                 var dreamBlur = AddEffect<DreamBlur>();
@@ -316,15 +661,18 @@ public sealed class VLiveKitLensFilterTestRig : MonoBehaviour
                 break;
             case LensFilterTestPreset.FilmGrain:
                 var filmGrain = AddEffect<VLiveKit.LiveLensFilters.PostProcessing.FilmGrain>();
-                Override(filmGrain.amount, 0.34f);
+                Override(filmGrain.intensity, 0.24f);
+                Override(filmGrain.amount, 0.3f);
                 break;
             case LensFilterTestPreset.GenshinBloom:
                 var genshinBloom = AddCustomPostProcess<GenshinBloom>();
-                Override(genshinBloom.threshold, 0.55f);
-                Override(genshinBloom.blurRadius, 3.5f);
-                Override(genshinBloom.intensity, 0.75f);
+                Override(genshinBloom.stretch, 0.75f);
+                Override(genshinBloom.threshold, 0.19f);
+                Override(genshinBloom.blurRadius, 6f);
+                Override(genshinBloom.intensity, 2.45f);
+                Override(genshinBloom.bloomColor, Color.white);
+                Override(genshinBloom.tint, new Color(1f, 0.6f, 0f));
                 Override(genshinBloom.bloomIntensity, 1.4f);
-                Override(genshinBloom.bloomColor, new Color(0.62f, 0.72f, 1f, 1f));
                 break;
             case LensFilterTestPreset.GenshinColorGrading:
                 var genshinColorGrading = AddCustomPostProcess<GenshinColorGrading>();
@@ -342,8 +690,9 @@ public sealed class VLiveKitLensFilterTestRig : MonoBehaviour
                 break;
             case LensFilterTestPreset.LensDistortion:
                 var lensDistortion = AddEffect<LensDistortionFx>();
-                Override(lensDistortion.amount, 0.58f);
-                Override(lensDistortion.chromatic, 0.45f);
+                Override(lensDistortion.intensity, 1f);
+                Override(lensDistortion.amount, 0.49f);
+                Override(lensDistortion.chromatic, 0.51f);
                 break;
             case LensFilterTestPreset.LensVignette:
                 var lensVignette = AddEffect<LensVignette>();
@@ -352,16 +701,18 @@ public sealed class VLiveKitLensFilterTestRig : MonoBehaviour
                 break;
             case LensFilterTestPreset.LightLeak:
                 var lightLeak = AddEffect<LightLeak>();
-                Override(lightLeak.drift, 0.45f);
-                Override(lightLeak.softness, 0.7f);
-                Override(lightLeak.burn, 0.72f);
+                Override(lightLeak.intensity, 0.03f);
+                Override(lightLeak.drift, 0.57f);
+                Override(lightLeak.softness, 1f);
+                Override(lightLeak.burn, 0.21f);
                 break;
             case LensFilterTestPreset.LightRays:
                 var lightRays = AddEffect<LightRays>();
-                Override(lightRays.threshold, 0.38f);
-                Override(lightRays.decay, 0.7f);
-                Override(lightRays.length, 0.82f);
-                Override(lightRays.samples, 14);
+                Override(lightRays.intensity, 0.28f);
+                Override(lightRays.threshold, 0.19f);
+                Override(lightRays.decay, 0.08f);
+                Override(lightRays.length, 0.4f);
+                Override(lightRays.samples, 12);
                 Override(lightRays.center, new Vector2(0.5f, 0.35f));
                 break;
             case LensFilterTestPreset.LightSweep:
@@ -378,8 +729,9 @@ public sealed class VLiveKitLensFilterTestRig : MonoBehaviour
                 break;
             case LensFilterTestPreset.PixelSort:
                 var pixelSort = AddEffect<PixelSort>();
-                Override(pixelSort.threshold, 0.32f);
-                Override(pixelSort.length, 0.72f);
+                Override(pixelSort.intensity, 1f);
+                Override(pixelSort.threshold, 0.11f);
+                Override(pixelSort.length, 0.57f);
                 break;
             case LensFilterTestPreset.Prism:
                 var prism = AddEffect<Prism>();
@@ -405,12 +757,13 @@ public sealed class VLiveKitLensFilterTestRig : MonoBehaviour
                 break;
             case LensFilterTestPreset.ShapedBokehFilter:
                 var shapedBokehFilter = AddEffect<ShapedBokehFilter>();
+                Override(shapedBokehFilter.rotation, -0.5f);
                 Override(shapedBokehFilter.threshold, 0.28f);
                 Override(shapedBokehFilter.size, 0.55f);
-                Override(shapedBokehFilter.bokehIntensity, 1.5f);
-                Override(shapedBokehFilter.softness, 0.16f);
+                Override(shapedBokehFilter.bokehIntensity, 0.12f);
+                Override(shapedBokehFilter.softness, 0.23f);
                 Override(shapedBokehFilter.samples, 9);
-                Override(shapedBokehFilter.pattern, ShapedBokehPattern.Forest);
+                Override(shapedBokehFilter.pattern, ShapedBokehPattern.Star);
                 break;
             case LensFilterTestPreset.StarFilter:
                 var starFilter = AddEffect<StarFilter>();
@@ -423,12 +776,12 @@ public sealed class VLiveKitLensFilterTestRig : MonoBehaviour
                 break;
             case LensFilterTestPreset.VLiveDOF:
                 var vliveDof = AddEffect<VLiveDOF>();
-                Override(vliveDof.focusDistance, 7.5f);
-                Override(vliveDof.focusRange, 1.0f);
+                Override(vliveDof.focusDistance, 6.4f);
+                Override(vliveDof.focusRange, 0.8f);
                 Override(vliveDof.blurRadius, 14f);
                 Override(vliveDof.nearBlur, 0.35f);
                 Override(vliveDof.farBlur, 1f);
-                Override(vliveDof.bokehThreshold, 0.25f);
+                Override(vliveDof.bokehThreshold, 0.9f);
                 Override(vliveDof.bokehIntensity, 1.5f);
                 Override(vliveDof.samples, 18);
                 break;
@@ -442,10 +795,11 @@ public sealed class VLiveKitLensFilterTestRig : MonoBehaviour
                 break;
             case LensFilterTestPreset.RainOnLens:
                 var rainOnLens = AddEffect<RainOnLens>();
-                Override(rainOnLens.rainAmount, 0.78f);
-                Override(rainOnLens.dropletSize, 0.48f);
-                Override(rainOnLens.refraction, 0.72f);
-                Override(rainOnLens.highlight, 0.85f);
+                Override(rainOnLens.intensity, 1f);
+                Override(rainOnLens.rainAmount, 0.34f);
+                Override(rainOnLens.dropletSize, 0.34f);
+                Override(rainOnLens.refraction, 1f);
+                Override(rainOnLens.highlight, 0.57f);
                 Override(rainOnLens.fallSpeed, 0.4f);
                 break;
             case LensFilterTestPreset.ZoomBlur:
@@ -477,15 +831,6 @@ public sealed class VLiveKitLensFilterTestRig : MonoBehaviour
     {
         parameter.overrideState = true;
         parameter.value = value;
-    }
-
-    void UpdateLabel(LensFilterTestPreset preset)
-    {
-        if (label == null)
-            return;
-
-        label.text = "VLive Lens Filters\n" + GetDisplayName(preset) + "\n" +
-                     (preset == LensFilterTestPreset.LayerBloom ? "Only layer 30 emits bloom" : "CreativeFx custom post process");
     }
 
     static string GetDisplayName(LensFilterTestPreset preset)

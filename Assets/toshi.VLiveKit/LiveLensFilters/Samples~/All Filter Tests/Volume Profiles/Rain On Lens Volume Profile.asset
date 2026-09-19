@@ -18,16 +18,16 @@ MonoBehaviour:
     m_Value: 1
   rainAmount:
     m_OverrideState: 1
-    m_Value: 0.78
+    m_Value: 0.34
   dropletSize:
     m_OverrideState: 1
-    m_Value: 0.48
+    m_Value: 0.34
   refraction:
     m_OverrideState: 1
-    m_Value: 0.72
+    m_Value: 1
   highlight:
     m_OverrideState: 1
-    m_Value: 0.85
+    m_Value: 0.57
   fallSpeed:
     m_OverrideState: 1
     m_Value: 0.4

@@ -1,4 +1,4 @@
-﻿using UnityEngine;
+using UnityEngine;
 using UnityEngine.Rendering;
 using SerializableAttribute = System.SerializableAttribute;
 
@@ -7,8 +7,8 @@ namespace VLiveKit.LiveLensFilters.PostProcessing
     [Serializable, VolumeComponentMenu("Post-processing/toshi/LensFilters/Chromatic Aberration Plus")]
     public sealed class ChromaticAberrationPlus : CreativeFxBase
     {
-        public ClampedFloatParameter amount = new ClampedFloatParameter(0.5f, 0, 1);
-        public ClampedFloatParameter edgeBias = new ClampedFloatParameter(0.7f, 0, 2);
+        public ClampedFloatParameter amount = new ClampedFloatParameter(0.49f, 0, 1);
+        public ClampedFloatParameter edgeBias = new ClampedFloatParameter(0.22f, 0, 2);
 
         protected override int Mode => 1;
 

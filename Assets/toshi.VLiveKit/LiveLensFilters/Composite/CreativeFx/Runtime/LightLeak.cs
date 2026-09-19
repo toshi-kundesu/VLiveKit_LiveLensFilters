@@ -1,4 +1,4 @@
-﻿using UnityEngine;
+using UnityEngine;
 using UnityEngine.Rendering;
 using SerializableAttribute = System.SerializableAttribute;
 
@@ -8,10 +8,10 @@ namespace VLiveKit.LiveLensFilters.PostProcessing
     public sealed class LightLeak : CreativeFxBase
     {
         public ColorParameter warm = new ColorParameter(new Color(1, 0.42f, 0.12f), false, false, true);
-        public ColorParameter cool = new ColorParameter(new Color(0.15f, 0.75f, 1), false, false, true);
-        public ClampedFloatParameter drift = new ClampedFloatParameter(0.25f, 0, 1);
-        public ClampedFloatParameter softness = new ClampedFloatParameter(0.62f, 0, 1);
-        public ClampedFloatParameter burn = new ClampedFloatParameter(0.58f, 0, 1);
+        public ColorParameter cool = new ColorParameter(new Color(0f, 0.5f, 0.7f), false, false, true);
+        public ClampedFloatParameter drift = new ClampedFloatParameter(0.57f, 0, 1);
+        public ClampedFloatParameter softness = new ClampedFloatParameter(1f, 0, 1);
+        public ClampedFloatParameter burn = new ClampedFloatParameter(0.21f, 0, 1);
 
         protected override int Mode => 4;
 

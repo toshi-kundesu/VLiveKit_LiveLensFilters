@@ -15,16 +15,16 @@ MonoBehaviour:
   active: 1
   sourceMode:
     m_OverrideState: 1
-    m_Value: 1
+    m_Value: 0
   blendMode:
     m_OverrideState: 1
     m_Value: 1
   useTint:
     m_OverrideState: 1
-    m_Value: 1
+    m_Value: 0
   tint:
     m_OverrideState: 1
-    m_Value: {r: 0.7, g: 0.82, b: 1, a: 1}
+    m_Value: {r: 1, g: 1, b: 1, a: 1}
   stretch:
     m_OverrideState: 1
     m_Value: 0.75
@@ -54,7 +54,7 @@ MonoBehaviour:
     m_Value: 1.25
   bloomColor:
     m_OverrideState: 1
-    m_Value: {r: 0.55, g: 0.55, b: 1, a: 1}
+    m_Value: {r: 1, g: 1, b: 1, a: 1}
 --- !u!114 &11400000
 MonoBehaviour:
   m_ObjectHideFlags: 0

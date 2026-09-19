@@ -15,22 +15,22 @@ MonoBehaviour:
   active: 1
   intensity:
     m_OverrideState: 1
-    m_Value: 1
+    m_Value: 0.03
   warm:
     m_OverrideState: 1
     m_Value: {r: 1, g: 0.42, b: 0.12, a: 1}
   cool:
     m_OverrideState: 1
-    m_Value: {r: 0.15, g: 0.75, b: 1, a: 1}
+    m_Value: {r: 0, g: 0.5, b: 0.7, a: 1}
   drift:
     m_OverrideState: 1
-    m_Value: 0.45
+    m_Value: 0.57
   softness:
     m_OverrideState: 1
-    m_Value: 0.7
+    m_Value: 1
   burn:
     m_OverrideState: 1
-    m_Value: 0.72
+    m_Value: 0.21
 --- !u!114 &11400000
 MonoBehaviour:
   m_ObjectHideFlags: 0

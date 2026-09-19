@@ -30,13 +30,14 @@ Shader "Hidden/toshi/LensFilters/Diffusion"
     }
 
     TEXTURE2D_X(_InputTexture);
-    float4 _InputTexture_TexelSize;
+    TEXTURE2D_X(_BlurTexture);
+    TEXTURE2D_X(_SourceTexture);
 
     float _Stretch;
     float _Threshold;
     float _BlurRadius;
+    float _MinimumBlur;
     float _Intensity;
-    float4 _BloomWeights;
     float _Exposure;
     float _Contrast;
     float _Saturation;
@@ -47,9 +48,30 @@ Shader "Hidden/toshi/LensFilters/Diffusion"
     int _UseTint;
     float4 _Tint;
 
+    static const float GaussianCenterWeight = 0.19648255;
+    static const float GaussianNearWeight = 0.29690696;
+    static const float GaussianMiddleWeight = 0.09447040;
+    static const float GaussianFarWeight = 0.01038136;
+    static const float GaussianNearOffset = 1.41176471;
+    static const float GaussianMiddleOffset = 3.29411765;
+    static const float GaussianFarOffset = 5.17647059;
+
     float4 SampleInput(float2 uv)
     {
-        return SAMPLE_TEXTURE2D_X(_InputTexture, s_linear_clamp_sampler, saturate(uv));
+        float2 sampleUV = ClampAndScaleUVForBilinearPostProcessTexture(uv);
+        return SAMPLE_TEXTURE2D_X(_InputTexture, s_linear_clamp_sampler, sampleUV);
+    }
+
+    float3 SampleBlur(float2 uv)
+    {
+        float2 sampleUV = ClampAndScaleUVForBilinearPostProcessTexture(uv);
+        return SAMPLE_TEXTURE2D_X(_BlurTexture, s_linear_clamp_sampler, sampleUV).rgb;
+    }
+
+    float4 SampleSource(float2 uv)
+    {
+        float2 sampleUV = ClampAndScaleUVForBilinearPostProcessTexture(uv);
+        return SAMPLE_TEXTURE2D_X(_SourceTexture, s_linear_clamp_sampler, sampleUV);
     }
 
     float Luma(float3 color)
@@ -73,41 +95,48 @@ Shader "Hidden/toshi/LensFilters/Diffusion"
         return _SourceMode == 0 ? color : Highlight(color);
     }
 
-    float3 DiffusionBlur(float2 uv)
+    float3 BlurHorizontal(float2 uv)
     {
-        float2 texel = _InputTexture_TexelSize.xy * max(_BlurRadius, 0.001);
-        texel.x *= lerp(1.0, 1.65, saturate(_Stretch));
-        texel.y *= lerp(1.0, 0.85, saturate(_Stretch));
+        float pixelRadius = max(_BlurRadius, 0.0) * lerp(1.0, 1.65, saturate(_Stretch));
+        float2 stepUV = float2(_PostProcessScreenSize.z * max(pixelRadius, 1.0), 0.0);
 
-        float4 weights = max(_BloomWeights, float4(0.04, 0.03, 0.02, 0.01));
-        float3 sum = SourceSample(uv) * 0.2;
-        float total = 0.2;
+        float3 center = SourceSample(uv);
+        float3 sum = center * GaussianCenterWeight;
+        sum += SourceSample(uv + stepUV * GaussianNearOffset) * GaussianNearWeight;
+        sum += SourceSample(uv - stepUV * GaussianNearOffset) * GaussianNearWeight;
+        sum += SourceSample(uv + stepUV * GaussianMiddleOffset) * GaussianMiddleWeight;
+        sum += SourceSample(uv - stepUV * GaussianMiddleOffset) * GaussianMiddleWeight;
+        sum += SourceSample(uv + stepUV * GaussianFarOffset) * GaussianFarWeight;
+        sum += SourceSample(uv - stepUV * GaussianFarOffset) * GaussianFarWeight;
+        // Keep paired bilinear taps at neighboring texels for subpixel radii.
+        return lerp(center, sum, saturate(max(_MinimumBlur, pixelRadius * pixelRadius)));
+    }
 
-        sum += SourceSample(uv + texel * float2( 1.0,  0.0)) * weights.x;
-        sum += SourceSample(uv + texel * float2(-1.0,  0.0)) * weights.x;
-        sum += SourceSample(uv + texel * float2( 0.0,  1.0)) * weights.x;
-        sum += SourceSample(uv + texel * float2( 0.0, -1.0)) * weights.x;
-        total += weights.x * 4.0;
+    float3 BlurTexture(float2 uv, float2 stepUV, float blurBlend)
+    {
+        float3 center = SampleBlur(uv);
+        float3 sum = center * GaussianCenterWeight;
+        sum += SampleBlur(uv + stepUV * GaussianNearOffset) * GaussianNearWeight;
+        sum += SampleBlur(uv - stepUV * GaussianNearOffset) * GaussianNearWeight;
+        sum += SampleBlur(uv + stepUV * GaussianMiddleOffset) * GaussianMiddleWeight;
+        sum += SampleBlur(uv - stepUV * GaussianMiddleOffset) * GaussianMiddleWeight;
+        sum += SampleBlur(uv + stepUV * GaussianFarOffset) * GaussianFarWeight;
+        sum += SampleBlur(uv - stepUV * GaussianFarOffset) * GaussianFarWeight;
+        return lerp(center, sum, blurBlend);
+    }
 
-        sum += SourceSample(uv + texel * float2( 1.8,  1.8)) * weights.y;
-        sum += SourceSample(uv + texel * float2(-1.8,  1.8)) * weights.y;
-        sum += SourceSample(uv + texel * float2( 1.8, -1.8)) * weights.y;
-        sum += SourceSample(uv + texel * float2(-1.8, -1.8)) * weights.y;
-        total += weights.y * 4.0;
+    float3 BlurVertical(float2 uv)
+    {
+        float pixelRadius = max(_BlurRadius, 0.0) * lerp(1.0, 0.85, saturate(_Stretch));
+        float2 stepUV = float2(0.0, _PostProcessScreenSize.w * max(pixelRadius, 1.0));
+        return BlurTexture(uv, stepUV, saturate(max(_MinimumBlur, pixelRadius * pixelRadius)));
+    }
 
-        sum += SourceSample(uv + texel * float2( 3.5,  0.0)) * weights.z;
-        sum += SourceSample(uv + texel * float2(-3.5,  0.0)) * weights.z;
-        sum += SourceSample(uv + texel * float2( 0.0,  3.5)) * weights.z;
-        sum += SourceSample(uv + texel * float2( 0.0, -3.5)) * weights.z;
-        total += weights.z * 4.0;
-
-        sum += SourceSample(uv + texel * float2( 5.0,  2.5)) * weights.w;
-        sum += SourceSample(uv + texel * float2(-5.0,  2.5)) * weights.w;
-        sum += SourceSample(uv + texel * float2( 5.0, -2.5)) * weights.w;
-        sum += SourceSample(uv + texel * float2(-5.0, -2.5)) * weights.w;
-        total += weights.w * 4.0;
-
-        return sum / max(total, 1.0e-4);
+    float3 BlurHorizontalTexture(float2 uv)
+    {
+        float pixelRadius = max(_BlurRadius, 0.0) * lerp(1.0, 1.65, saturate(_Stretch));
+        float2 stepUV = float2(_PostProcessScreenSize.z * max(pixelRadius, 1.0), 0.0);
+        return BlurTexture(uv, stepUV, saturate(max(_MinimumBlur, pixelRadius * pixelRadius)));
     }
 
     float3 ApplyGrade(float3 color)
@@ -124,12 +153,30 @@ Shader "Hidden/toshi/LensFilters/Diffusion"
         return 1.0 - (1.0 - saturate(source)) * (1.0 - saturate(glow));
     }
 
-    float4 Fragment(Varyings input) : SV_Target
+    float4 FragmentHorizontal(Varyings input) : SV_Target
+    {
+        UNITY_SETUP_STEREO_EYE_INDEX_POST_VERTEX(input);
+        return float4(BlurHorizontal(input.texcoord), 1.0);
+    }
+
+    float4 FragmentVertical(Varyings input) : SV_Target
+    {
+        UNITY_SETUP_STEREO_EYE_INDEX_POST_VERTEX(input);
+        return float4(BlurVertical(input.texcoord), 1.0);
+    }
+
+    float4 FragmentHorizontalBlur(Varyings input) : SV_Target
+    {
+        UNITY_SETUP_STEREO_EYE_INDEX_POST_VERTEX(input);
+        return float4(BlurHorizontalTexture(input.texcoord), 1.0);
+    }
+
+    float4 FragmentComposite(Varyings input) : SV_Target
     {
         UNITY_SETUP_STEREO_EYE_INDEX_POST_VERTEX(input);
 
-        float4 source = SampleInput(input.texcoord);
-        float3 glow = DiffusionBlur(input.texcoord) * _BloomColor.rgb * _BloomIntensity;
+        float4 source = SampleSource(input.texcoord);
+        float3 glow = BlurVertical(input.texcoord) * _BloomColor.rgb * _BloomIntensity;
         if (_UseTint != 0)
             glow *= _Tint.rgb;
 
@@ -149,7 +196,34 @@ Shader "Hidden/toshi/LensFilters/Diffusion"
             Cull Off ZWrite Off ZTest Always
             HLSLPROGRAM
             #pragma vertex Vertex
-            #pragma fragment Fragment
+            #pragma fragment FragmentHorizontal
+            ENDHLSL
+        }
+
+        Pass
+        {
+            Cull Off ZWrite Off ZTest Always
+            HLSLPROGRAM
+            #pragma vertex Vertex
+            #pragma fragment FragmentVertical
+            ENDHLSL
+        }
+
+        Pass
+        {
+            Cull Off ZWrite Off ZTest Always
+            HLSLPROGRAM
+            #pragma vertex Vertex
+            #pragma fragment FragmentHorizontalBlur
+            ENDHLSL
+        }
+
+        Pass
+        {
+            Cull Off ZWrite Off ZTest Always
+            HLSLPROGRAM
+            #pragma vertex Vertex
+            #pragma fragment FragmentComposite
             ENDHLSL
         }
     }

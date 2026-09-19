@@ -1,4 +1,4 @@
-﻿using UnityEngine;
+using UnityEngine;
 using UnityEngine.Rendering;
 using SerializableAttribute = System.SerializableAttribute;
 
@@ -7,7 +7,7 @@ namespace VLiveKit.LiveLensFilters.PostProcessing
     [Serializable, VolumeComponentMenu("Post-processing/toshi/LensFilters/Film Grain")]
     public sealed class FilmGrain : CreativeFxBase
     {
-        public ClampedFloatParameter amount = new ClampedFloatParameter(0.18f, 0, 1);
+        public ClampedFloatParameter amount = new ClampedFloatParameter(0.3f, 0, 1);
 
         protected override int Mode => 10;
 

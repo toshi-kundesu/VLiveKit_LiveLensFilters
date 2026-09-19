@@ -18,10 +18,10 @@ MonoBehaviour:
     m_Value: 1
   amount:
     m_OverrideState: 1
-    m_Value: 0.58
+    m_Value: 0.49
   chromatic:
     m_OverrideState: 1
-    m_Value: 0.45
+    m_Value: 0.51
 --- !u!114 &11400000
 MonoBehaviour:
   m_ObjectHideFlags: 0

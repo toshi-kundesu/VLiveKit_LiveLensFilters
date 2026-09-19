@@ -24,9 +24,13 @@ CreativeFx は `Post-processing/toshi/LensFilters` の Volume Component とし�
 
 Scene View and Preview cameras are bypassed so the editor view stays usable while the effects remain active for Game cameras.
 
+`Bleach Bypass` reduces saturation and raises contrast for a harder image. `Genshin Bloom` extracts bright areas, spreads them horizontally according to Stretch, and adds the glow after post-processing. `Diffusion` can soften the whole image or just highlights, using Screen or Lighten blending. Its Threshold control is disabled in Full Frame mode, and Tint is disabled unless Use Tint is enabled. Diffusion Intensity saturates at 1 after Volume blending; values above 1 remain supported for weighted Volumes. Exposure, Contrast, and Saturation affect the diffusion layer. Bloom Color defaults to white.
+
 `VLiveDOF` is a depth-aware creative depth of field effect. Set `Focus Distance` and `Focus Range` for the sharp plane, then use `Blur Radius`, `Bokeh Threshold`, `Bokeh Intensity`, and `Bokeh Tint` to make bright out-of-focus lights draw intentional round bokeh discs.
 
 `Shaped Bokeh Filter` turns bright highlights into patterned bokeh. Use `Pattern` for built-in Forest, Star, Heart, and Circle masks, or assign a high-contrast alpha texture to `Pattern Texture` for custom shapes such as text or icons.
+
+Blur-based CreativeFx effects use a shared Gaussian pyramid to keep wide blurs and light streaks continuous. DOF integrates more aperture samples, and shaped bokeh extracts highlights before filtering to avoid dotted copies and abrupt highlight edges. Diffusion and Genshin Bloom also use continuous Gaussian passes. These quality improvements add GPU work; the CreativeFx working textures are shared across effects so Auto Cycle does not allocate a separate pyramid for each filter.
 
 `Screen Transform` applies a post-process UV transform to the camera image. Use `Offset`, `Zoom`, `Rotation`, and `Pivot` directly for keyframed screen motion, or add `ScreenTransformWiggle` to a Volume object to drive those values with smooth Perlin-noise motion similar to After Effects wiggle. Keep `Zoom` slightly above `1` when using offset wiggle so the clamped screen edges stay outside the frame.
 
@@ -53,8 +57,10 @@ Set `Composite Mode` to choose how the blurred layer is mixed back into the came
 
 ## Samples
 
+The comparison rig and ready-to-drop Volume Profiles include the tuned effect strengths. Runtime component Intensity defaults remain zero so registering an effect alone does not enable it globally. Other parameter defaults match the sample values.
+
 - `Empty Scene` is a blank starting point for a Lens Filters setup.
-- `All Filter Tests` includes `All Filters Test.unity`, which cycles through every CreativeFx custom post process, and `Layer Bloom Test.unity`, which opens directly on the `LayerBloom` custom pass.
+- `All Filter Tests` includes a dark stage with the Test Assets Container lion sculpture, material spheres, side lighting, and an HDR emitter array. `All Filters Test.unity` starts with Genshin Color Grading and Auto Cycle enabled. Use the on-screen list or previous/next buttons to select and hold a filter; the Auto Cycle button resumes from the current filter. The overlay can be hidden with `Show Label` on the rig. `Layer Bloom Test.unity` opens directly on the `LayerBloom` custom pass. Without the optional test model, the rig uses a primitive fallback.
 - `All Filter Tests/Prefabs/Volumes` includes ready-to-drop global volume prefabs for every CreativeFx effect, a `Screen Wiggle Volume` helper prefab, plus LayerBloom and MaskOffsetRimLight custom pass volume prefabs.
 
 `MaskOffsetRimLight` builds a screen-space rim from a shifted character mask. Use `Mask Source: Original Material` when the character shader changes vertex positions, such as LiveToon perspective correction, so the mask follows the rendered character shape. `Rim Placement: Inside` clips the rim to the original mask; switch to `Outside` only when an exterior glow is desired. Set `Offset Source` to `Directional Light` to derive the rim direction from a scene Directional Light or `RenderSettings.sun`; `Invert Directional Light` is useful when you want the rim to appear on the side the light comes from.

@@ -1,4 +1,4 @@
-﻿using UnityEngine;
+using UnityEngine;
 using UnityEngine.Rendering;
 using SerializableAttribute = System.SerializableAttribute;
 
@@ -7,9 +7,9 @@ namespace VLiveKit.LiveLensFilters.PostProcessing
     [Serializable, VolumeComponentMenu("Post-processing/toshi/LensFilters/Light Rays")]
     public sealed class LightRays : CreativeFxBase
     {
-        public ClampedFloatParameter threshold = new ClampedFloatParameter(0.72f, 0, 4);
-        public ClampedFloatParameter decay = new ClampedFloatParameter(0.58f, 0, 1);
-        public ClampedFloatParameter length = new ClampedFloatParameter(0.64f, 0, 1);
+        public ClampedFloatParameter threshold = new ClampedFloatParameter(0.19f, 0, 4);
+        public ClampedFloatParameter decay = new ClampedFloatParameter(0.08f, 0, 1);
+        public ClampedFloatParameter length = new ClampedFloatParameter(0.4f, 0, 1);
         public ClampedIntParameter samples = new ClampedIntParameter(12, 2, 16);
         public Vector2Parameter center = new Vector2Parameter(new Vector2(0.5f, 0.35f));
         public ColorParameter tint = new ColorParameter(new Color(1, 0.92f, 0.68f), false, false, true);

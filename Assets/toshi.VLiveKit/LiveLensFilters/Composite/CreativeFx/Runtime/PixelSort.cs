@@ -1,4 +1,4 @@
-﻿using UnityEngine;
+using UnityEngine;
 using UnityEngine.Rendering;
 using SerializableAttribute = System.SerializableAttribute;
 
@@ -7,8 +7,8 @@ namespace VLiveKit.LiveLensFilters.PostProcessing
     [Serializable, VolumeComponentMenu("Post-processing/toshi/LensFilters/Pixel Sort")]
     public sealed class PixelSort : CreativeFxBase
     {
-        public ClampedFloatParameter threshold = new ClampedFloatParameter(0.65f, 0, 2);
-        public ClampedFloatParameter length = new ClampedFloatParameter(0.45f, 0, 1);
+        public ClampedFloatParameter threshold = new ClampedFloatParameter(0.11f, 0, 2);
+        public ClampedFloatParameter length = new ClampedFloatParameter(0.57f, 0, 1);
 
         protected override int Mode => 8;
 

@@ -15,14 +15,14 @@ namespace VLiveKit.LiveLensFilters.PostProcessing
     [Serializable, VolumeComponentMenu("Post-processing/toshi/LensFilters/Shaped Bokeh Filter")]
     public sealed class ShapedBokehFilter : CreativeFxBase
     {
-        public ClampedFloatParameter threshold = new ClampedFloatParameter(0.85f, 0.0f, 8.0f);
+        public ClampedFloatParameter threshold = new ClampedFloatParameter(0.28f, 0.0f, 8.0f);
         public ClampedFloatParameter size = new ClampedFloatParameter(0.55f, 0.0f, 1.0f);
-        public ClampedFloatParameter bokehIntensity = new ClampedFloatParameter(1.15f, 0.0f, 4.0f);
-        public ClampedFloatParameter softness = new ClampedFloatParameter(0.18f, 0.0f, 1.0f);
-        public ClampedFloatParameter rotation = new ClampedFloatParameter(0.0f, -1.0f, 1.0f);
-        public ClampedIntParameter samples = new ClampedIntParameter(7, 3, 9);
+        public ClampedFloatParameter bokehIntensity = new ClampedFloatParameter(0.12f, 0.0f, 4.0f);
+        public ClampedFloatParameter softness = new ClampedFloatParameter(0.23f, 0.0f, 1.0f);
+        public ClampedFloatParameter rotation = new ClampedFloatParameter(-0.5f, -1.0f, 1.0f);
+        public ClampedIntParameter samples = new ClampedIntParameter(9, 3, 9);
         public EnumParameter<ShapedBokehPattern> pattern =
-            new EnumParameter<ShapedBokehPattern>(ShapedBokehPattern.Forest);
+            new EnumParameter<ShapedBokehPattern>(ShapedBokehPattern.Star);
         public Texture2DParameter patternTexture = new Texture2DParameter(null);
         public ColorParameter tint = new ColorParameter(Color.white, false, false, true);
 

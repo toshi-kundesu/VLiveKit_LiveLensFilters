@@ -104,8 +104,10 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: 2542b0b1e2d447978545464f45948035, type: 3}
   m_Name: 
   m_EditorClassIdentifier: 
-  selectedPreset: 11
+  selectedPreset: 13
   autoCycle: 1
   cycleSeconds: 3
   layerBloomLayer: 30
   showBloomOnly: 0
+  previewModel: {fileID: 919132149155446097, guid: 1861ee8c598c57a4aa81c86f3324429d, type: 3}
+  previewModelEuler: {x: 0, y: 165, z: 0}

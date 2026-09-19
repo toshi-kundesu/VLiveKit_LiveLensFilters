@@ -31,7 +31,19 @@ Shader "Hidden/toshi/LensFilters/CreativeFx"
 
     TEXTURE2D_X(_InputTexture);
     TEXTURE2D(_PatternTexture);
-    float4 _InputTexture_TexelSize;
+    TEXTURE2D_X(_BlurSourceTexture);
+    TEXTURE2D_X(_BlurPyramid0);
+    TEXTURE2D_X(_BlurPyramid1);
+    TEXTURE2D_X(_BlurPyramid2);
+    TEXTURE2D_X(_BlurPyramid3);
+    TEXTURE2D_X(_BlurPyramid4);
+    float4 _BlurSourceGeometry;
+    float4 _BlurGeometry0;
+    float4 _BlurGeometry1;
+    float4 _BlurGeometry2;
+    float4 _BlurGeometry3;
+    float4 _BlurGeometry4;
+    float2 _BlurDirection;
 
     int _Mode;
     int _Steps;
@@ -77,7 +89,8 @@ Shader "Hidden/toshi/LensFilters/CreativeFx"
 
     float4 SampleInput(float2 uv)
     {
-        return SAMPLE_TEXTURE2D_X(_InputTexture, s_linear_clamp_sampler, saturate(uv));
+        return SAMPLE_TEXTURE2D_X(_InputTexture, s_linear_clamp_sampler,
+            ClampAndScaleUVForBilinearPostProcessTexture(saturate(uv)));
     }
 
     float Luma(float3 c)
@@ -90,38 +103,61 @@ Shader "Hidden/toshi/LensFilters/CreativeFx"
         return 1.0 - (1.0 - saturate(a)) * (1.0 - saturate(b));
     }
 
+    float2 BlurUV(float2 uv, float4 geometry)
+    {
+        float2 halfTexel = geometry.zw * 0.5;
+        return clamp(uv, halfTexel, 1.0 - halfTexel) * geometry.xy;
+    }
+
+    float3 SampleBlurLevel(float2 uv, int level)
+    {
+        if (level == 0)
+            return SAMPLE_TEXTURE2D_X(_BlurPyramid0, s_linear_clamp_sampler, BlurUV(uv, _BlurGeometry0)).rgb;
+        if (level == 1)
+            return SAMPLE_TEXTURE2D_X(_BlurPyramid1, s_linear_clamp_sampler, BlurUV(uv, _BlurGeometry1)).rgb;
+        if (level == 2)
+            return SAMPLE_TEXTURE2D_X(_BlurPyramid2, s_linear_clamp_sampler, BlurUV(uv, _BlurGeometry2)).rgb;
+        if (level == 3)
+            return SAMPLE_TEXTURE2D_X(_BlurPyramid3, s_linear_clamp_sampler, BlurUV(uv, _BlurGeometry3)).rgb;
+        return SAMPLE_TEXTURE2D_X(_BlurPyramid4, s_linear_clamp_sampler, BlurUV(uv, _BlurGeometry4)).rgb;
+    }
+
+    float3 BokehHighlights(float3 color)
+    {
+        float brightness = max(color.r, max(color.g, color.b));
+        float transition = lerp(0.18, 1.35, _Softness);
+        return color * smoothstep(_Threshold, _Threshold + transition, brightness);
+    }
+
+    // A continuous footprint rather than widely separated copies of the original
+    // image. Variance interpolation keeps the authored blur size stable.
+    float3 FilteredInput(float2 uv, float sigmaPixels)
+    {
+        float variance = sigmaPixels * sigmaPixels;
+        if (variance < 2.85)
+        {
+            float3 source = SampleInput(uv).rgb;
+            if (_Mode == 27)
+                source = BokehHighlights(source);
+            return lerp(source, SampleBlurLevel(uv, 0), saturate(variance / 2.85));
+        }
+        if (variance < 14.5)
+            return lerp(SampleBlurLevel(uv, 0), SampleBlurLevel(uv, 1), (variance - 2.85) / 11.65);
+        if (variance < 61.1)
+            return lerp(SampleBlurLevel(uv, 1), SampleBlurLevel(uv, 2), (variance - 14.5) / 46.6);
+        if (variance < 247.5)
+            return lerp(SampleBlurLevel(uv, 2), SampleBlurLevel(uv, 3), (variance - 61.1) / 186.4);
+        return lerp(SampleBlurLevel(uv, 3), SampleBlurLevel(uv, 4), saturate((variance - 247.5) / 745.6));
+    }
+
     float3 SoftBlur(float2 uv, float radius)
     {
-        float2 texel = _InputTexture_TexelSize.xy * radius;
-        float3 c = SampleInput(uv).rgb * 0.24;
-        c += SampleInput(uv + texel * float2( 1,  0)).rgb * 0.12;
-        c += SampleInput(uv + texel * float2(-1,  0)).rgb * 0.12;
-        c += SampleInput(uv + texel * float2( 0,  1)).rgb * 0.12;
-        c += SampleInput(uv + texel * float2( 0, -1)).rgb * 0.12;
-        c += SampleInput(uv + texel * float2( 1,  1)).rgb * 0.07;
-        c += SampleInput(uv + texel * float2(-1,  1)).rgb * 0.07;
-        c += SampleInput(uv + texel * float2( 1, -1)).rgb * 0.07;
-        c += SampleInput(uv + texel * float2(-1, -1)).rgb * 0.07;
-        return c;
+        return FilteredInput(uv, max(0.0, radius) * 0.7211);
     }
 
     float3 WideBlur(float2 uv, float radius)
     {
-        float2 texel = _InputTexture_TexelSize.xy * radius;
-        float3 c = SampleInput(uv).rgb * 0.18;
-        c += SampleInput(uv + texel * float2( 1.5,  0.0)).rgb * 0.09;
-        c += SampleInput(uv + texel * float2(-1.5,  0.0)).rgb * 0.09;
-        c += SampleInput(uv + texel * float2( 0.0,  1.5)).rgb * 0.09;
-        c += SampleInput(uv + texel * float2( 0.0, -1.5)).rgb * 0.09;
-        c += SampleInput(uv + texel * float2( 2.8,  1.2)).rgb * 0.07;
-        c += SampleInput(uv + texel * float2(-2.8,  1.2)).rgb * 0.07;
-        c += SampleInput(uv + texel * float2( 2.8, -1.2)).rgb * 0.07;
-        c += SampleInput(uv + texel * float2(-2.8, -1.2)).rgb * 0.07;
-        c += SampleInput(uv + texel * float2( 4.5,  0.0)).rgb * 0.055;
-        c += SampleInput(uv + texel * float2(-4.5,  0.0)).rgb * 0.055;
-        c += SampleInput(uv + texel * float2( 0.0,  4.5)).rgb * 0.055;
-        c += SampleInput(uv + texel * float2( 0.0, -4.5)).rgb * 0.055;
-        return c;
+        return FilteredInput(uv, max(0.0, radius) * 2.1545);
     }
 
     float3 Halation(float2 uv, float3 src)
@@ -179,27 +215,71 @@ Shader "Hidden/toshi/LensFilters/CreativeFx"
         return lerp(src, c, saturate(edge + _Radius * 0.3));
     }
 
+    float LightLeakLatticeHash(int2 cell)
+    {
+        // Shared corners must produce identical values from either adjacent
+        // cell. Integer mixing avoids sin/dot rounding differences after GPU
+        // optimization; the final 24-bit conversion is exact in float32.
+        uint2 p = asuint(cell);
+        uint h = p.x * 0x8da6b343u ^ p.y * 0xd8163841u;
+        h ^= h >> 16;
+        h *= 0x7feb352du;
+        h ^= h >> 15;
+        h *= 0x846ca68bu;
+        h ^= h >> 16;
+        return (h & 0x00ffffffu) * (1.0 / 16777216.0);
+    }
+
+    float LightLeakNoise(float2 p)
+    {
+        int2 cell = (int2)floor(p);
+        float2 f = frac(p);
+        // Quintic interpolation also makes the slope and curvature agree at
+        // grid boundaries, keeping broad low-contrast washes free of grid lines.
+        f = f * f * f * (f * (f * 6.0 - 15.0) + 10.0);
+        float a = LightLeakLatticeHash(cell);
+        float b = LightLeakLatticeHash(cell + int2(1, 0));
+        float c = LightLeakLatticeHash(cell + int2(0, 1));
+        float d = LightLeakLatticeHash(cell + int2(1, 1));
+        return lerp(lerp(a, b, f.x), lerp(c, d, f.x), f.y);
+    }
+
     float3 LightLeak(float2 uv, float3 src)
     {
         float time = _TimeValue * lerp(0.035, 0.42, _Amount);
         float softness = lerp(0.24, 0.74, _Radius);
 
-        float left = pow(saturate(1.0 - smoothstep(0.0, softness, uv.x)), 1.35);
-        float right = pow(saturate(smoothstep(1.0 - softness * 0.72, 1.0, uv.x)), 1.8);
-        float top = pow(saturate(smoothstep(1.0 - softness * 0.8, 1.0, uv.y)), 1.45);
+        // Curved, unbounded falloffs avoid the straight contours made by
+        // screen-aligned smoothstep cutoffs, even at maximum softness.
+        float2 warp = float2(
+            LightLeakNoise(uv * float2(2.3, 1.7) + float2(time * 0.4, time * 0.17)),
+            LightLeakNoise(uv * float2(1.8, 2.1) + float2(7.3 - time * 0.21, time * 0.3)));
+        float2 leakUV = uv + (warp - 0.5) * lerp(0.10, 0.22, _Radius);
+        float2 leftP = (leakUV - float2(-0.06, 0.4 + sin(time * 0.7) * 0.13))
+                     / float2(softness * 0.85, 1.0);
+        float2 rightP = (leakUV - float2(1.07, 0.75 + sin(time * 0.53 + 1.4) * 0.16))
+                      / float2(softness * 0.62, 0.9);
+        float2 topP = (leakUV - float2(0.58 + sin(time * 0.43 + 2.1) * 0.16, 1.08))
+                    / float2(0.9, softness * 0.7);
+        float left = exp2(-dot(leftP, leftP) * 2.5);
+        float right = exp2(-dot(rightP, rightP) * 2.5);
+        float top = exp2(-dot(topP, topP) * 2.5);
         float edge = left + right * 0.42 + top * 0.32;
 
-        float sweep = (1.0 - uv.x) * 0.88 + uv.y * 0.46;
-        sweep += (ValueNoise(float2(uv.y * 2.0 + time, time * 0.37)) - 0.5) * 0.22;
-        float diagonal = smoothstep(0.28, 0.58, sweep) * (1.0 - smoothstep(0.72, 1.18, sweep));
+        float sweep = (1.0 - leakUV.x) * 0.88 + leakUV.y * 0.46;
+        sweep += (LightLeakNoise(leakUV * float2(1.6, 2.0) + time * 0.37) - 0.5) * 0.22;
+        float bandDistance = (sweep - 0.68) / 0.36;
+        float diagonal = exp2(-bandDistance * bandDistance * 2.0);
 
-        float2 burnCenter = float2(0.03 + ValueNoise(float2(time, 2.1)) * 0.12,
-                                  frac(0.23 + time * 0.18 + ValueNoise(float2(4.2, time)) * 0.4));
-        float2 p = (uv - burnCenter) * float2(_ScreenSize.x / _ScreenSize.y, 1.0);
-        float blob = 1.0 - smoothstep(0.0, 0.52, length(p));
-        blob *= lerp(0.65, 1.35, ValueNoise(uv * float2(3.0, 8.0) + time));
+        // Keep the burn moving continuously; frac used to teleport it from
+        // one edge of the frame to the other at each wrap.
+        float2 burnCenter = float2(0.03 + LightLeakNoise(float2(time, 2.1)) * 0.12,
+                                  0.5 + sin(time * 0.7 + LightLeakNoise(float2(4.2, time)) * 0.8) * 0.32);
+        float2 p = (leakUV - burnCenter) * float2(_ScreenSize.x / _ScreenSize.y, 1.0);
+        float blob = exp2(-dot(p, p) * (5.0 / (0.52 * 0.52)));
+        blob *= lerp(0.65, 1.35, LightLeakNoise(uv * float2(3.0, 8.0) + time));
 
-        float grain = ValueNoise(uv * float2(16.0, 5.0) + time * 3.0);
+        float grain = LightLeakNoise(uv * float2(16.0, 5.0) + time * 3.0);
         float leak = saturate((edge * lerp(0.7, 1.35, grain) + diagonal * 0.75 + blob) * _Intensity);
         float hot = pow(saturate(leak), lerp(3.4, 1.15, _Threshold));
 
@@ -207,7 +287,9 @@ Shader "Hidden/toshi/LensFilters/CreativeFx"
         float3 cool = _Color2.rgb;
         float3 tint = lerp(warm, cool, saturate(uv.y * 0.75 + grain * 0.45));
         float3 wash = tint * leak * lerp(0.9, 2.7, _Threshold);
-        float3 burned = ScreenBlend(src, wash);
+        // Add only the screen-blend contribution. Clamping the source itself
+        // would flatten HDR highlights even as the leak intensity tends to zero.
+        float3 burned = src + saturate(wash) * (1.0 - saturate(src));
         burned += warm * hot * 0.55;
         burned = lerp(burned, max(burned, float3(0.94, 0.94, 0.94) + warm * 0.28), hot * 0.55);
         return burned;
@@ -215,7 +297,7 @@ Shader "Hidden/toshi/LensFilters/CreativeFx"
 
     float3 StarFilter(float2 uv, float3 src)
     {
-        float2 texel = _InputTexture_TexelSize.xy;
+        float2 texel = _PostProcessScreenSize.zw;
         float3 streak = 0;
         float total = 0;
 
@@ -223,10 +305,12 @@ Shader "Hidden/toshi/LensFilters/CreativeFx"
         for (int i = 1; i <= 8; i++)
         {
             float w = (9.0 - i) / 9.0;
-            float d = i * lerp(1.0, 5.0, _Radius);
-            float3 hx = SampleInput(uv + texel * float2( d, 0)).rgb + SampleInput(uv - texel * float2( d, 0)).rgb;
-            float3 hy = SampleInput(uv + texel * float2( 0, d)).rgb + SampleInput(uv - texel * float2( 0, d)).rgb;
-            float3 hd = SampleInput(uv + texel * float2( d, d)).rgb + SampleInput(uv - texel * float2( d, d)).rgb;
+            float spacing = lerp(1.0, 5.0, _Radius);
+            float d = i * spacing;
+            float footprint = spacing * 0.5;
+            float3 hx = FilteredInput(uv + texel * float2( d, 0), footprint) + FilteredInput(uv - texel * float2( d, 0), footprint);
+            float3 hy = FilteredInput(uv + texel * float2( 0, d), footprint) + FilteredInput(uv - texel * float2( 0, d), footprint);
+            float3 hd = FilteredInput(uv + texel * float2( d, d), footprint) + FilteredInput(uv - texel * float2( d, d), footprint);
             float3 bright = max(0, (hx + hy + hd * 0.6) / 5.2 - _Threshold);
             streak += bright * w;
             total += w;
@@ -339,16 +423,17 @@ Shader "Hidden/toshi/LensFilters/CreativeFx"
 
     float3 AnamorphicFlare(float2 uv, float3 src)
     {
-        float2 texel = _InputTexture_TexelSize.xy;
+        float2 texel = _PostProcessScreenSize.zw;
         float3 streak = 0;
         float total = 0;
         UNITY_UNROLL
         for (int i = 1; i <= 12; i++)
         {
             float w = (13.0 - i) / 13.0;
-            float d = i * lerp(4.0, 24.0, _Radius);
-            float3 a = SampleInput(uv + texel * float2(d, 0)).rgb;
-            float3 b = SampleInput(uv - texel * float2(d, 0)).rgb;
+            float spacing = lerp(4.0, 24.0, _Radius);
+            float d = i * spacing;
+            float3 a = FilteredInput(uv + texel * float2(d, 0), spacing * 0.5);
+            float3 b = FilteredInput(uv - texel * float2(d, 0), spacing * 0.5);
             float3 br = max(0, (a + b) * 0.5 - _Threshold);
             streak += br * w;
             total += w;
@@ -650,21 +735,26 @@ Shader "Hidden/toshi/LensFilters/CreativeFx"
         float2 center = _Color2.xy;
         float2 dir = center - uv;
         float dist = length(dir);
-        float2 stepUV = dir / max(1.0, _Steps);
+        float authoredSteps = clamp((float)_Steps, 2.0, 16.0);
+        float sampleCount = authoredSteps * 4.0;
+        float sampleStride = (authoredSteps - 1.0) / (sampleCount - 1.0);
+        float2 stepUV = dir / authoredSteps * sampleStride;
+        float decay = pow(lerp(0.62, 0.92, _Amount), sampleStride);
         float3 rays = 0;
         float weight = 1.0;
         float total = 0;
 
         UNITY_UNROLL
-        for (int i = 0; i < 16; i++)
+        for (int i = 0; i < 64; i++)
         {
-            float active = step(i + 0.5, (float)_Steps);
+            float active = step(i + 0.5, sampleCount);
             float2 suv = uv + stepUV * i * lerp(0.3, 1.6, _Radius);
-            float3 s = SampleInput(suv).rgb;
+            float footprint = length(stepUV * _PostProcessScreenSize.xy) * lerp(0.3, 1.6, _Radius) * 0.5;
+            float3 s = FilteredInput(suv, footprint);
             float m = smoothstep(_Threshold, _Threshold + 0.6, Luma(s)) * active;
             rays += s * m * weight;
             total += weight * active;
-            weight *= lerp(0.62, 0.92, _Amount);
+            weight *= decay;
         }
 
         float falloff = 1.0 - smoothstep(0.15, 1.0, dist);
@@ -680,12 +770,16 @@ Shader "Hidden/toshi/LensFilters/CreativeFx"
         float total = 0.18;
 
         UNITY_UNROLL
-        for (int i = 1; i <= 10; i++)
+        for (int i = 1; i <= 32; i++)
         {
-            float t = i / 10.0;
-            float w = (1.0 - t) * 0.16;
-            float2 suv = uv - dir * t * _Amount * _Intensity * 0.32;
-            blur += SampleInput(suv).rgb * w;
+            float t = i / 32.0;
+            // Preserve the original 0.72 accumulated blur weight when increasing
+            // the path sample count; the sharp center still contributes 0.18.
+            float w = (1.0 - t) * (0.72 / 15.5);
+            float2 path = dir * _Amount * _Intensity * 0.32;
+            float2 suv = uv - path * t;
+            float footprint = length(path * _PostProcessScreenSize.xy) / 64.0;
+            blur += FilteredInput(suv, footprint) * w;
             total += w;
         }
 
@@ -710,40 +804,45 @@ Shader "Hidden/toshi/LensFilters/CreativeFx"
     {
         float coc = VLiveDOFDepthCoc(uv);
         float sampleRadius = _Radius * coc;
+        if (sampleRadius < 0.01)
+            return src;
+        float sampleCount = clamp((float)_Steps * 3.0, 12.0, 72.0);
+        float footprint = sampleRadius * sqrt(3.14159265 / sampleCount) * 0.7;
 
         float3 blur = src * 0.18;
         float3 bokeh = 0;
         float total = 0.18;
-        float bokehTotal = 0;
-        float2 texel = _InputTexture_TexelSize.xy;
+        float2 texel = _PostProcessScreenSize.zw;
 
-        UNITY_UNROLL
-        for (int i = 0; i < 24; i++)
+        [loop]
+        for (int i = 0; i < 72; i++)
         {
-            float active = step(i + 0.5, (float)_Steps);
-            float sample01 = (i + 0.5) / 24.0;
+            if (i >= sampleCount)
+                break;
+            float sample01 = (i + 0.5) / sampleCount;
             float angle = i * 2.39996323 + 0.35;
             float ring = sqrt(sample01);
             float2 disk = float2(cos(angle), sin(angle)) * ring;
             float2 suv = uv + disk * texel * sampleRadius;
-            float3 s = SampleInput(suv).rgb;
+            float3 s = FilteredInput(suv, footprint);
             float sampleCoc = VLiveDOFDepthCoc(suv);
-            float blurWeight = active * lerp(0.78, 1.18, saturate(sampleCoc));
+            float blurWeight = lerp(0.78, 1.18, saturate(sampleCoc));
 
             blur += s * blurWeight;
             total += blurWeight;
 
+            // Highlights use the same aperture integral as the image. Dividing
+            // only by bright samples makes an arbitrarily faint threshold crossing
+            // jump to full brightness, producing posterized patches on surfaces.
             float highlight = smoothstep(_Threshold, _Threshold + 1.0, max(s.r, max(s.g, s.b)));
-            float aperture = lerp(0.68, 1.28, smoothstep(0.35, 1.0, ring));
-            float bokehWeight = active * highlight * saturate(max(coc, sampleCoc)) * aperture;
-            bokeh += max(float3(0.0, 0.0, 0.0), s - float3(_Threshold, _Threshold, _Threshold) * 0.45) * bokehWeight;
-            bokehTotal += bokehWeight;
+            float aperture = lerp(0.8, 1.1, smoothstep(0.35, 1.0, ring));
+            bokeh += s * highlight * blurWeight * aperture;
         }
 
         float dofBlend = saturate(coc * _Intensity);
         float3 softened = blur / max(0.001, total);
         float3 dof = lerp(src, softened, dofBlend);
-        float3 bokehColor = bokeh / max(0.001, bokehTotal) * _Color.rgb * _Amount * _Intensity * coc * 2.75;
+        float3 bokehColor = bokeh / max(0.001, total) * _Color.rgb * _Amount * _Intensity * coc;
         return max(float3(0.0, 0.0, 0.0), dof + bokehColor);
     }
 
@@ -843,31 +942,39 @@ Shader "Hidden/toshi/LensFilters/CreativeFx"
 
     float3 ShapedBokeh(float2 uv, float3 src)
     {
-        float halfSamples = max(1.0, floor(((float)_Steps - 1.0) * 0.5));
+        // Integrate the aperture at twice the authored grid density. The source
+        // pyramid contains highlights extracted BEFORE filtering, so interpolation
+        // fills a continuous shape instead of thresholding each tap into a dot.
+        float halfSamples = clamp(floor(((float)_Steps - 1.0) * 0.5) * 2.0, 2.0, 8.0);
         float radiusPixels = lerp(8.0, 96.0, _Radius);
-        float2 radiusUV = _InputTexture_TexelSize.xy * radiusPixels;
-        float brightSoftness = lerp(0.18, 1.35, _Softness);
+        float2 radiusUV = _PostProcessScreenSize.zw * radiusPixels;
+        float footprint = radiusPixels / halfSamples * 0.65;
         float3 bokeh = 0.0;
+        float total = 0.0;
 
         [loop]
-        for (int y = -4; y <= 4; y++)
+        for (int y = -8; y <= 8; y++)
         {
+            if (abs((float)y) > halfSamples)
+                continue;
             [loop]
-            for (int x = -4; x <= 4; x++)
+            for (int x = -8; x <= 8; x++)
             {
-                float active = step(abs((float)x), halfSamples + 0.01) *
-                               step(abs((float)y), halfSamples + 0.01);
+                if (abs((float)x) > halfSamples)
+                    continue;
                 float2 p = float2(x, y) / halfSamples;
-                float mask = PatternMask(p) * active;
-                float3 sampleColor = SampleInput(uv - p * radiusUV).rgb;
-                float bright = smoothstep(_Threshold, _Threshold + brightSoftness,
-                                          max(sampleColor.r, max(sampleColor.g, sampleColor.b)));
-                float3 highlight = max(float3(0.0, 0.0, 0.0), sampleColor - _Threshold * 0.35);
-                bokeh += highlight * bright * mask;
+                float mask = PatternMask(p);
+                if (mask < 0.001)
+                    continue;
+                bokeh += FilteredInput(uv - p * radiusUV, footprint) * mask;
+                total += mask;
             }
         }
 
-        return max(float3(0.0, 0.0, 0.0), src + bokeh * _Color.rgb * _Amount * _Intensity * 0.45);
+        // Aperture energy must not rise with the quality setting or the number
+        // of occupied mask pixels. The gain only controls the artistic addition.
+        float3 glow = bokeh / max(0.001, total);
+        return max(float3(0.0, 0.0, 0.0), src + glow * _Color.rgb * _Amount * _Intensity * 2.5);
     }
 
     float4 Fragment(Varyings input) : SV_Target
@@ -913,6 +1020,57 @@ Shader "Hidden/toshi/LensFilters/CreativeFx"
         return float4(outColor, src4.a);
     }
 
+    float4 SampleBlurSource(float2 uv)
+    {
+        return SAMPLE_TEXTURE2D_X(_BlurSourceTexture, s_linear_clamp_sampler,
+            BlurUV(uv, _BlurSourceGeometry));
+    }
+
+    float4 FragmentDownsample(Varyings input) : SV_Target
+    {
+        UNITY_SETUP_STEREO_EYE_INDEX_POST_VERTEX(input);
+        // Bilinear sampling integrates the 2x2 source pixels at each half-size
+        // destination pixel center. Each source level has already been blurred.
+        return SampleBlurSource(input.texcoord);
+    }
+
+    float4 FragmentGaussian(Varyings input) : SV_Target
+    {
+        UNITY_SETUP_STEREO_EYE_INDEX_POST_VERTEX(input);
+        float2 uv = input.texcoord;
+        // Nine contiguous Gaussian taps paired into five bilinear lookups.
+        float4 color = SampleBlurSource(uv) * 0.22702703;
+        color += SampleBlurSource(uv + _BlurDirection * 1.38461538) * 0.31621622;
+        color += SampleBlurSource(uv - _BlurDirection * 1.38461538) * 0.31621622;
+        color += SampleBlurSource(uv + _BlurDirection * 3.23076923) * 0.07027027;
+        color += SampleBlurSource(uv - _BlurDirection * 3.23076923) * 0.07027027;
+        return color;
+    }
+
+    float4 SampleBokehHighlightSource(float2 uv)
+    {
+        float4 source = SampleBlurSource(uv);
+        return float4(BokehHighlights(source.rgb), source.a);
+    }
+
+    float4 FragmentBokehHighlights(Varyings input) : SV_Target
+    {
+        UNITY_SETUP_STEREO_EYE_INDEX_POST_VERTEX(input);
+        float2 uv = input.texcoord;
+        // Extract at individual source pixels before combining their energy;
+        // bilinear-paired extraction can erase near-threshold, one-pixel lights.
+        float4 color = SampleBokehHighlightSource(uv) * 0.22702703;
+        color += SampleBokehHighlightSource(uv + _BlurDirection) * 0.19459459;
+        color += SampleBokehHighlightSource(uv - _BlurDirection) * 0.19459459;
+        color += SampleBokehHighlightSource(uv + _BlurDirection * 2.0) * 0.12162162;
+        color += SampleBokehHighlightSource(uv - _BlurDirection * 2.0) * 0.12162162;
+        color += SampleBokehHighlightSource(uv + _BlurDirection * 3.0) * 0.05405405;
+        color += SampleBokehHighlightSource(uv - _BlurDirection * 3.0) * 0.05405405;
+        color += SampleBokehHighlightSource(uv + _BlurDirection * 4.0) * 0.01621622;
+        color += SampleBokehHighlightSource(uv - _BlurDirection * 4.0) * 0.01621622;
+        return color;
+    }
+
     ENDHLSL
 
     SubShader
@@ -921,8 +1079,36 @@ Shader "Hidden/toshi/LensFilters/CreativeFx"
         {
             Cull Off ZWrite Off ZTest Always
             HLSLPROGRAM
+            #pragma target 4.5
             #pragma vertex Vertex
             #pragma fragment Fragment
+            ENDHLSL
+        }
+        Pass
+        {
+            Cull Off ZWrite Off ZTest Always
+            HLSLPROGRAM
+            #pragma target 4.5
+            #pragma vertex Vertex
+            #pragma fragment FragmentDownsample
+            ENDHLSL
+        }
+        Pass
+        {
+            Cull Off ZWrite Off ZTest Always
+            HLSLPROGRAM
+            #pragma target 4.5
+            #pragma vertex Vertex
+            #pragma fragment FragmentGaussian
+            ENDHLSL
+        }
+        Pass
+        {
+            Cull Off ZWrite Off ZTest Always
+            HLSLPROGRAM
+            #pragma target 4.5
+            #pragma vertex Vertex
+            #pragma fragment FragmentBokehHighlights
             ENDHLSL
         }
     }

@@ -7,11 +7,11 @@ namespace VLiveKit.LiveLensFilters.PostProcessing
     [Serializable, VolumeComponentMenu("Post-processing/toshi/LensFilters/Rain On Lens")]
     public sealed class RainOnLens : CreativeFxBase
     {
-        public ClampedFloatParameter rainAmount = new ClampedFloatParameter(0.65f, 0f, 1f);
-        public ClampedFloatParameter dropletSize = new ClampedFloatParameter(0.48f, 0f, 1f);
-        public ClampedFloatParameter refraction = new ClampedFloatParameter(0.68f, 0f, 1f);
-        public ClampedFloatParameter highlight = new ClampedFloatParameter(0.72f, 0f, 1f);
-        public ClampedFloatParameter fallSpeed = new ClampedFloatParameter(0.35f, 0f, 1f);
+        public ClampedFloatParameter rainAmount = new ClampedFloatParameter(0.34f, 0f, 1f);
+        public ClampedFloatParameter dropletSize = new ClampedFloatParameter(0.34f, 0f, 1f);
+        public ClampedFloatParameter refraction = new ClampedFloatParameter(1f, 0f, 1f);
+        public ClampedFloatParameter highlight = new ClampedFloatParameter(0.57f, 0f, 1f);
+        public ClampedFloatParameter fallSpeed = new ClampedFloatParameter(0.4f, 0f, 1f);
         public ColorParameter tint = new ColorParameter(new Color(0.86f, 0.95f, 1f, 0.24f), false, true, true);
 
         protected override int Mode => 29;

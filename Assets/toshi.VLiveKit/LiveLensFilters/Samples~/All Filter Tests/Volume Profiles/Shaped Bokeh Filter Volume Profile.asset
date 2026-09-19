@@ -24,19 +24,19 @@ MonoBehaviour:
     m_Value: 0.55
   bokehIntensity:
     m_OverrideState: 1
-    m_Value: 1.5
+    m_Value: 0.12
   softness:
     m_OverrideState: 1
-    m_Value: 0.16
+    m_Value: 0.23
   rotation:
     m_OverrideState: 1
-    m_Value: 0
+    m_Value: -0.5
   samples:
     m_OverrideState: 1
     m_Value: 9
   pattern:
     m_OverrideState: 1
-    m_Value: 0
+    m_Value: 1
   patternTexture:
     m_OverrideState: 1
     m_Value: {fileID: 0}

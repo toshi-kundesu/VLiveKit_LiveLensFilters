@@ -15,19 +15,19 @@ MonoBehaviour:
   active: 1
   intensity:
     m_OverrideState: 1
-    m_Value: 1
+    m_Value: 0.35
   probability:
     m_OverrideState: 1
-    m_Value: 0.35
+    m_Value: 0.29
   displacement:
     m_OverrideState: 1
-    m_Value: 0.75
+    m_Value: 0.63
   blockSize:
     m_OverrideState: 1
-    m_Value: 0.45
+    m_Value: 0.68
   quantizeSteps:
     m_OverrideState: 1
-    m_Value: 9
+    m_Value: 15
 --- !u!114 &11400000
 MonoBehaviour:
   m_ObjectHideFlags: 0
