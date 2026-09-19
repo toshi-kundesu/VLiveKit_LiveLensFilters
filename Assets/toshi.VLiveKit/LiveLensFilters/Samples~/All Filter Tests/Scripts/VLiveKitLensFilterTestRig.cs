@@ -22,6 +22,11 @@ public sealed class VLiveKitLensFilterTestRig : MonoBehaviour
     [Tooltip("Include filter selection and Auto Cycle controls in the overlay.")]
     public bool showControls = true;
 
+    [Header("Preview Camera")]
+    public Vector3 previewCameraPosition = new Vector3(1.87f, 1.598f, -3.455f);
+    public Vector3 previewCameraEuler = new Vector3(0.7994769f, -23.9163f, 0f);
+    [Range(1f, 179f)] public float previewCameraFieldOfView = 34f;
+
     const string GeneratedRootName = "Generated Preview Rig";
     const HideFlags RuntimeFlags = HideFlags.DontSaveInEditor | HideFlags.DontSaveInBuild;
     const int PresetCount = (int)LensFilterTestPreset.LayerBloom + 1;
@@ -52,6 +57,25 @@ public sealed class VLiveKitLensFilterTestRig : MonoBehaviour
     GUIStyle countStyle;
 
     public LensFilterTestPreset ActivePreset => activePreset;
+
+    [ContextMenu("Capture Preview Camera")]
+    public void CapturePreviewCamera()
+    {
+        var camera = generatedRoot != null ? generatedRoot.GetComponentInChildren<Camera>() : null;
+        if (camera == null)
+            return;
+#if UNITY_EDITOR
+        UnityEditor.Undo.RecordObject(this, "Capture Preview Camera");
+#endif
+        previewCameraPosition = camera.transform.localPosition;
+        previewCameraEuler = camera.transform.localEulerAngles;
+        previewCameraFieldOfView = camera.fieldOfView;
+#if UNITY_EDITOR
+        UnityEditor.EditorUtility.SetDirty(this);
+        if (gameObject.scene.IsValid())
+            UnityEditor.SceneManagement.EditorSceneManager.MarkSceneDirty(gameObject.scene);
+#endif
+    }
 
     void OnEnable()
     {
@@ -323,10 +347,10 @@ public sealed class VLiveKitLensFilterTestRig : MonoBehaviour
     void BuildPreviewObjects()
     {
         var cameraObject = CreateObject("Preview Camera", generatedRoot);
-        cameraObject.transform.localPosition = new Vector3(2.6f, 1.75f, -5.1f);
-        cameraObject.transform.localRotation = Quaternion.LookRotation(new Vector3(0.05f, 1.22f, 0.65f) - cameraObject.transform.localPosition);
+        cameraObject.transform.localPosition = previewCameraPosition;
+        cameraObject.transform.localRotation = Quaternion.Euler(previewCameraEuler);
         var camera = cameraObject.AddComponent<Camera>();
-        camera.fieldOfView = 34f;
+        camera.fieldOfView = Mathf.Clamp(previewCameraFieldOfView, 1f, 179f);
         camera.nearClipPlane = 0.05f;
         camera.farClipPlane = 250f;
         camera.backgroundColor = Color.black;
@@ -615,9 +639,9 @@ public sealed class VLiveKitLensFilterTestRig : MonoBehaviour
         {
             enabled = true,
             targetLayer = 1 << layerBloomLayer,
-            width = 32f,
+            width = 62.5f,
             softness = 0.6f,
-            intensity = 0.8f,
+            intensity = 1.32f,
             backgroundExposure = 0f,
             saturation = 1f,
             tint = Color.white,

@@ -68,9 +68,9 @@ MonoBehaviour:
         targetLayer:
           serializedVersion: 2
           m_Bits: 1073741824
-        width: 32
+        width: 62.5
         softness: 0.6
-        intensity: 0.8
+        intensity: 1.32
         backgroundExposure: 0
         saturation: 1
         tint: {r: 1, g: 1, b: 1, a: 1}

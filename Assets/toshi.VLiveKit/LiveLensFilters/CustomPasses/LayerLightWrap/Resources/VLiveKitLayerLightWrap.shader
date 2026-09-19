@@ -58,11 +58,20 @@ Shader "Hidden/toshi/LensFilters/CustomPass/LayerLightWrap"
     TEXTURE2D_X(_MaskTexture);
     TEXTURE2D_X(_BlurTexture);
     TEXTURE2D_X(_SourceTexture);
+    TEXTURE2D_X(_DirectLightingTexture);
+    TEXTURE2D_X(_DirectRimMaskTexture);
 
     float4 _CameraColorScaleBias;
     float4 _MaskScaleBias;
     float4 _BlurScaleBias;
     float4 _SourceScaleBias;
+    float4 _DirectLightingScaleBias;
+    float4 _DirectRimMaskScaleBias;
+    float4 _DirectRimMaskTexelSize;
+    float _DirectLightIntensity;
+    float _DirectLightSoftness;
+    float _DirectLightGain;
+    float4 _DirectLightTint;
     // xy = reciprocal viewport dimensions, zw = viewport dimensions.
     // The mask uses the camera viewport; the blur uses the source viewport.
     float4 _CameraTexelSize;
@@ -134,6 +143,24 @@ Shader "Hidden/toshi/LensFilters/CustomPass/LayerLightWrap"
         return background * 0.25;
     }
 
+    float SilhouetteBackgroundCoverage(float2 uv)
+    {
+        float mask = saturate(SAMPLE_TEXTURE2D_X(_MaskTexture, s_point_clamp_sampler,
+            ViewportUv(uv, _MaskScaleBias, _CameraTexelSize.xy)).a);
+        return 1.0 - step(0.5 / 255.0, mask);
+    }
+
+    float4 FragmentRimMask(FullscreenVaryings input) : SV_Target
+    {
+        UNITY_SETUP_STEREO_EYE_INDEX_POST_VERTEX(input);
+        float2 offset = _CameraTexelSize.xy * 0.5;
+        float coverage = SilhouetteBackgroundCoverage(input.texcoord + float2(-offset.x, -offset.y));
+        coverage += SilhouetteBackgroundCoverage(input.texcoord + float2(offset.x, -offset.y));
+        coverage += SilhouetteBackgroundCoverage(input.texcoord + float2(-offset.x, offset.y));
+        coverage += SilhouetteBackgroundCoverage(input.texcoord + offset);
+        return float4(0.0, 0.0, 0.0, coverage * 0.25);
+    }
+
     float4 GaussianBlur(float2 uv, float2 direction)
     {
         float2 stepUv = direction * _SourceTexelSize.xy * (max(0.0, _Width) / 8.0);
@@ -191,28 +218,48 @@ Shader "Hidden/toshi/LensFilters/CustomPass/LayerLightWrap"
 
         // Return the untouched sample outside the target, avoiding even small
         // arithmetic changes to pixels that must not receive the effect.
-        if (_DebugMode == 0 && (mask <= 0.0 || _Intensity <= 0.0))
+        if (_DebugMode == 0 && (mask <= 0.0 || (_Intensity <= 0.0 && _DirectLightIntensity <= 0.0)))
             return camera;
 
-        float4 blurred = SAMPLE_TEXTURE2D_X(_BlurTexture, s_linear_clamp_sampler,
-            ViewportUv(input.texcoord, _BlurScaleBias, _SourceTexelSize.xy));
-        float3 background = max(0.0, blurred.rgb / max(blurred.a, 1.0e-5));
-        background *= max(0.0, _BackgroundGain);
-        float luminance = dot(background, float3(0.2126, 0.7152, 0.0722));
-        background = max(0.0, lerp(luminance.xxx, background, max(0.0, _Saturation)));
-        background *= max(0.0, _Tint.rgb);
+        float3 wrapped = camera.rgb;
+        if (_Intensity > 0.0 || _DebugMode == 2 || _DebugMode == 3)
+        {
+            float4 blurred = SAMPLE_TEXTURE2D_X(_BlurTexture, s_linear_clamp_sampler,
+                ViewportUv(input.texcoord, _BlurScaleBias, _SourceTexelSize.xy));
+            float3 background = max(0.0, blurred.rgb / max(blurred.a, 1.0e-5));
+            background *= max(0.0, _BackgroundGain);
+            float luminance = dot(background, float3(0.2126, 0.7152, 0.0722));
+            background = max(0.0, lerp(luminance.xxx, background, max(0.0, _Saturation)));
+            background *= max(0.0, _Tint.rgb);
+            if (_DebugMode == 3)
+                return float4(background, camera.a);
+            float edge = mask * saturate(blurred.a * 2.0);
+            edge = pow(edge, lerp(4.0, 1.0, saturate(_Softness)));
+            wrapped = CompositeWrap(camera.rgb, background, edge);
+        }
 
-        if (_DebugMode == 3)
-            return float4(background, camera.a);
+        float3 directRim = 0.0;
+        if (_DirectLightIntensity > 0.0 || _DebugMode == 4 || _DebugMode == 5)
+        {
+            float3 lighting = max(0.0, SAMPLE_TEXTURE2D_X(_DirectLightingTexture, s_linear_clamp_sampler,
+                ViewportUv(input.texcoord, _DirectLightingScaleBias, _CameraTexelSize.xy)).rgb);
+            lighting *= max(0.0, _DirectLightGain) * max(0.0, _DirectLightTint.rgb);
+            if (_DebugMode == 5)
+                return float4(lighting * mask, camera.a);
+            float coverage = SAMPLE_TEXTURE2D_X(_DirectRimMaskTexture, s_linear_clamp_sampler,
+                ViewportUv(input.texcoord, _DirectRimMaskScaleBias, _DirectRimMaskTexelSize.xy)).a;
+            float directEdge = mask * saturate(coverage * 2.0);
+            directEdge = pow(directEdge, lerp(4.0, 1.0, saturate(_DirectLightSoftness)));
+            directRim = lighting * max(0.0, _DirectLightIntensity) * directEdge;
+        }
 
-        float edge = mask * saturate(blurred.a * 2.0);
-        edge = pow(edge, lerp(4.0, 1.0, saturate(_Softness)));
-        float3 wrapped = CompositeWrap(camera.rgb, background, edge);
+        if (_DebugMode == 4)
+            return float4(directRim, camera.a);
 
         if (_DebugMode == 2)
             return float4(max(0.0, wrapped - camera.rgb), camera.a);
 
-        return float4(wrapped, camera.a);
+        return float4(wrapped + directRim, camera.a);
     }
 
     ENDHLSL
@@ -288,6 +335,20 @@ Shader "Hidden/toshi/LensFilters/CustomPass/LayerLightWrap"
             HLSLPROGRAM
             #pragma vertex VertFullscreen
             #pragma fragment FragmentComposite
+            ENDHLSL
+        }
+
+        Pass
+        {
+            Name "RimMask"
+            ZWrite Off
+            ZTest Always
+            Blend Off
+            Cull Off
+
+            HLSLPROGRAM
+            #pragma vertex VertFullscreen
+            #pragma fragment FragmentRimMask
             ENDHLSL
         }
     }
